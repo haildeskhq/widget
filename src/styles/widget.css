@@ -1,0 +1,550 @@
+/* Haildesk Widget Styles - Scoped for Shadow DOM */
+
+:host {
+  all: initial;
+  font-family: 'Fredoka', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #f1f5f9;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Bubble button */
+.haildesk-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--haildesk-primary, #4F46E5);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 999999;
+  outline: none;
+}
+
+.haildesk-bubble:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.haildesk-bubble:active {
+  transform: scale(0.95);
+}
+
+.haildesk-bubble svg {
+  width: 24px;
+  height: 24px;
+  color: var(--haildesk-icon, white);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.haildesk-bubble--left {
+  right: auto;
+  left: 20px;
+}
+
+/* Unread badge */
+.haildesk-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  background-color: #EF4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  border: 2px solid white;
+}
+
+/* Chat window */
+.haildesk-window {
+  position: fixed;
+  bottom: 88px;
+  right: 20px;
+  width: 360px;
+  height: 520px;
+  background: #161d2e;
+  border: 1px solid #1e2a3a;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 999998;
+  animation: haildesk-slide-up 0.25s ease;
+}
+
+.haildesk-window--left {
+  right: auto;
+  left: 20px;
+}
+
+.haildesk-window--hidden {
+  display: none;
+}
+
+@keyframes haildesk-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Window header */
+.haildesk-header {
+  padding: 16px;
+  background-color: #0d1117;
+  border-bottom: 1px solid #1e2a3a;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.haildesk-header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.haildesk-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.haildesk-header-title {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.haildesk-header-status {
+  font-size: 12px;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.haildesk-header-status::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #34D399;
+}
+
+.haildesk-header-status--offline::before {
+  background-color: #9CA3AF;
+}
+
+.haildesk-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  opacity: 0.8;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: opacity 0.15s;
+}
+
+.haildesk-close-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.haildesk-close-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Messages area */
+.haildesk-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+.haildesk-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.haildesk-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.haildesk-messages::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 2px;
+}
+
+/* Individual messages */
+.haildesk-message {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  max-width: 85%;
+}
+
+.haildesk-message--agent {
+  align-self: flex-start;
+}
+
+.haildesk-message--customer {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.haildesk-message--system {
+  align-self: center;
+  max-width: 100%;
+}
+
+.haildesk-message-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.haildesk-message--agent .haildesk-message-bubble {
+  background: var(--haildesk-secondary, #1e2a3a);
+  color: #f1f5f9;
+  border-bottom-left-radius: 4px;
+}
+
+.haildesk-message--customer .haildesk-message-bubble {
+  background: var(--haildesk-primary, #4F46E5);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.haildesk-message--system .haildesk-message-bubble {
+  background: transparent;
+  color: #6B7280;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.haildesk-message-time {
+  font-size: 10px;
+  color: #9CA3AF;
+  margin-top: 2px;
+  text-align: right;
+}
+
+.haildesk-message--agent .haildesk-message-time {
+  text-align: left;
+}
+
+/* Greeting / empty state */
+.haildesk-greeting {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.haildesk-greeting-emoji {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.haildesk-greeting-text {
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+/* Input area */
+.haildesk-input-area {
+  padding: 12px;
+  border-top: 1px solid #1e2a3a;
+  background: #0d1117;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.haildesk-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid #1e2a3a;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  max-height: 100px;
+  overflow-y: auto;
+  outline: none;
+  transition: border-color 0.15s;
+  color: white;
+  background: #161d2e;
+}
+
+.haildesk-input:focus {
+  border-color: var(--haildesk-primary, #4F46E5);
+}
+
+.haildesk-input::placeholder {
+  color: #64748b;
+}
+
+.haildesk-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: var(--haildesk-primary, #4F46E5);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s, opacity 0.15s;
+  color: white;
+}
+
+.haildesk-send-btn:hover {
+  background-color: #4338CA;
+}
+
+.haildesk-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.haildesk-send-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Offline state */
+.haildesk-offline-message {
+  margin: 12px;
+  padding: 12px;
+  background: #2d1a00;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #fbbf24;
+  text-align: center;
+}
+
+/* Typing indicator */
+.haildesk-typing {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.haildesk-typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px;
+  background: #1e2a3a;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+}
+
+.haildesk-typing-dots span {
+  width: 6px;
+  height: 6px;
+  background: #9CA3AF;
+  border-radius: 50%;
+  animation: haildesk-bounce 1.4s infinite ease-in-out;
+}
+
+.haildesk-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.haildesk-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes haildesk-bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Name prompt overlay */
+.haildesk-name-prompt {
+  position: absolute;
+  inset: 0;
+  top: 60px; /* sit below the header */
+  background: #161d2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 24px;
+}
+
+.haildesk-name-prompt-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  text-align: center;
+}
+
+.haildesk-name-prompt-emoji {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.haildesk-name-prompt-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.haildesk-name-prompt-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.haildesk-name-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #1e2a3a;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #f1f5f9;
+  background: #0d1117;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.haildesk-name-input:focus {
+  border-color: var(--haildesk-primary, #4F46E5);
+}
+
+.haildesk-name-input::placeholder {
+  color: #64748b;
+}
+
+.haildesk-name-submit-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--haildesk-primary, #4F46E5);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+
+.haildesk-name-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.haildesk-name-submit-btn:not(:disabled):hover {
+  opacity: 0.88;
+}
+
+/* Footer */
+.haildesk-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #64748b;
+  padding: 6px;
+  background: #0d1117;
+  flex-shrink: 0;
+}
+
+/* Plus and emoji buttons */
+.haildesk-plus-btn, .haildesk-emoji-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.haildesk-plus-btn:hover, .haildesk-emoji-btn:hover {
+  color: white;
+  background: #1e2a3a;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .haildesk-window {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    bottom: 0;
+    right: 0;
+    border-radius: 0;
+    z-index: 1000000; /* above the bubble */
+  }
+
+  .haildesk-window--left {
+    right: 0;
+    left: 0;
+    width: 100%;
+  }
+}
