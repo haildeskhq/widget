@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import pkg from './package.json';
 
 export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/widget.ts'),
       name: 'HaildeskWidget',
-      fileName: 'widget',
+      fileName: () => `widget-${pkg.version}.iife.js`,
       formats: ['iife'],
     },
     outDir: 'dist',
