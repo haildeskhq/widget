@@ -1,7 +1,7 @@
 import { createBubble, updateBubbleIcon, updateBubbleCount } from "./ui/bubble";
 import { createChatWindow } from "./ui/chatWindow";
 import { WidgetSocket } from "./socket/WidgetSocket";
-import { HaildeskWidgetConfig, ChatMessage, OrgConfig } from "./types";
+import { HaildeskWidgetConfig, ChatMessage, ChatAttachment, OrgConfig } from "./types";
 import widgetCss from "./styles/widget.css?inline";
 
 // export type { HaildeskWidgetConfig };
@@ -40,6 +40,7 @@ export class HaildeskWidget {
     offlineMessage:
       "We're currently offline. Leave a message and we'll get back to you.",
     orgName: "Support",
+    orgLogoUrl: null,
     aiEnabled: false,
     aiPersonaName: "Assistant",
     aiPersonaAvatar: "",
@@ -195,7 +196,7 @@ export class HaildeskWidget {
     };
 
     const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure } =
-      createChatWindow(windowConfig, (body) => this.handleSendMessage(body));
+      createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments));
 
     this.windowEl = element;
     this.addMessageToWindow = addMessage;
@@ -232,6 +233,7 @@ export class HaildeskWidget {
         body: message.body,
         senderType: message.senderType,
         createdAt: new Date(message.createdAt),
+        attachments: message.attachments,
       });
 
       if (message.senderType === 'agent' && this.orgConfig.disclosureEnabled) {
@@ -260,17 +262,19 @@ export class HaildeskWidget {
           body: msg.body,
           senderType: msg.senderType,
           createdAt: new Date(msg.createdAt),
+          attachments: msg.attachments,
         });
       });
     });
   }
 
-  private handleSendMessage(body: string): void {
+  private handleSendMessage(body: string, attachments?: ChatAttachment[]): void {
     this.addMessageToWindow?.({
       id: `local-${Date.now()}`,
       body,
       senderType: "customer",
       createdAt: new Date(),
+      attachments,
     });
 
     this.socket?.sendMessage(body, (confirmedConversationId) => {
@@ -278,7 +282,7 @@ export class HaildeskWidget {
         this.conversationId = confirmedConversationId;
         this.writeToStorage(LS_CONVERSATION_KEY, confirmedConversationId);
       }
-    });
+    }, attachments);
   }
 
   open(): void {

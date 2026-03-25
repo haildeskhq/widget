@@ -7,12 +7,20 @@ export interface WidgetSocketConfig {
   conversationId?: string;
 }
 
+export interface ChatAttachment {
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface IncomingMessage {
   id: string;
   body: string;
   senderType: 'agent' | 'customer' | 'system' | 'ai';
   createdAt: Date;
   conversationId: string;
+  attachments?: ChatAttachment[];
 }
 
 export interface HaildeskWidgetConfig {
@@ -31,12 +39,14 @@ export interface ChatWindowConfig {
   isOnline: boolean;
   offlineMessage: string;
   orgName?: string;
+  orgLogoUrl?: string | null;
   headerTitle?: string;
   aiPersonaAvatar?: string;
   disclosureEnabled?: boolean;
   disclosureText?: string;
   requireNamePrompt?: boolean;
   onNameProvided?: (name: string) => void;
+  plan?: string;
 }
 
 export interface ChatMessage {
@@ -44,6 +54,7 @@ export interface ChatMessage {
   body: string;
   senderType: 'agent' | 'customer' | 'system' | 'ai';
   createdAt: Date;
+  attachments?: ChatAttachment[];
 }
 
 export interface BubbleConfig {
@@ -62,10 +73,12 @@ export interface OrgConfig {
   isOnline: boolean;
   offlineMessage: string;
   orgName: string;
+  orgLogoUrl?: string | null;
   aiEnabled?: boolean;
   aiPersonaName?: string;
   aiPersonaAvatar?: string;
   disclosureEnabled?: boolean;
   disclosureText?: string;
   disclosureLiveText?: string;
+  plan?: string;
 }

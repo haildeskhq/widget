@@ -510,8 +510,8 @@
   flex-shrink: 0;
 }
 
-/* Plus and emoji buttons */
-.haildesk-plus-btn, .haildesk-emoji-btn {
+/* Plus button */
+.haildesk-plus-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -524,7 +524,7 @@
   transition: color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
-.haildesk-plus-btn:hover, .haildesk-emoji-btn:hover {
+.haildesk-plus-btn:hover {
   color: white;
   background: #1e2a3a;
 }

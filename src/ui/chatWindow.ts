@@ -1,10 +1,24 @@
-import { ChatWindowConfig, ChatMessage } from '../types';
+import { UploadManager } from '@bytescale/sdk';
+import { ChatWindowConfig, ChatMessage, ChatAttachment } from '../types';
 
 export type { ChatWindowConfig, ChatMessage };
 
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain', 'application/zip', 'video/mp4', 'audio/mpeg',
+];
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function createChatWindow(
   config: ChatWindowConfig,
-  onSendMessage: (body: string) => void
+  onSendMessage: (body: string, attachments?: ChatAttachment[]) => void
 ): {
   element: HTMLDivElement;
   addMessage: (message: ChatMessage) => void;
@@ -13,6 +27,9 @@ export function createChatWindow(
   enableInput: () => void;
   updateDisclosure: (text: string) => void;
 } {
+  const bytescaleApiKey = (import.meta as { env?: { VITE_BYTESCALE_API_KEY?: string } }).env?.VITE_BYTESCALE_API_KEY ?? '';
+  const uploadManager = bytescaleApiKey ? new UploadManager({ apiKey: bytescaleApiKey }) : null;
+
   const window = document.createElement('div');
   window.className = [
     'haildesk-window',
@@ -27,10 +44,12 @@ export function createChatWindow(
   window.setAttribute('aria-label', 'Support chat');
 
   const displayName = config.headerTitle ?? config.orgName ?? 'Support';
-  const avatarHtml = config.aiPersonaAvatar
-    ? `<img src="${config.aiPersonaAvatar}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+  const avatarImg = config.aiPersonaAvatar || config.orgLogoUrl;
+  const avatarHtml = avatarImg
+    ? `<img src="${avatarImg}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
     : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
        </svg>`;
 
   const header = document.createElement('div');
@@ -81,6 +100,51 @@ export function createChatWindow(
   `;
   typingEl.style.display = 'none';
 
+  // Pending attachments state
+  let pendingAttachments: ChatAttachment[] = [];
+  let isUploading = false;
+
+  // Pending attachments preview bar
+  const attachmentPreview = document.createElement('div');
+  attachmentPreview.className = 'haildesk-attachment-preview';
+  attachmentPreview.style.display = 'none';
+
+  function renderAttachmentPreview(): void {
+    attachmentPreview.innerHTML = '';
+    if (pendingAttachments.length === 0) {
+      attachmentPreview.style.display = 'none';
+      return;
+    }
+    attachmentPreview.style.display = 'flex';
+    pendingAttachments.forEach((att, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'haildesk-attachment-chip';
+
+      if (att.mimeType.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = att.url;
+        img.alt = att.filename;
+        img.style.cssText = 'width:20px;height:20px;object-fit:cover;border-radius:4px;';
+        chip.appendChild(img);
+      }
+
+      const name = document.createElement('span');
+      name.textContent = att.filename.length > 16 ? att.filename.slice(0, 14) + '…' : att.filename;
+      chip.appendChild(name);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.innerHTML = '&times;';
+      removeBtn.setAttribute('aria-label', 'Remove attachment');
+      removeBtn.addEventListener('click', () => {
+        pendingAttachments = pendingAttachments.filter((_, idx) => idx !== i);
+        renderAttachmentPreview();
+        updateSendBtn();
+      });
+      chip.appendChild(removeBtn);
+      attachmentPreview.appendChild(chip);
+    });
+  }
+
   const inputArea = document.createElement('div');
   inputArea.className = 'haildesk-input-area';
 
@@ -101,10 +165,12 @@ export function createChatWindow(
     </svg>
   `;
 
-  textarea.addEventListener('input', () => {
-    const hasValue = textarea.value.trim().length > 0;
-    sendBtn.disabled = !hasValue;
+  function updateSendBtn(): void {
+    sendBtn.disabled = isUploading || (textarea.value.trim().length === 0 && pendingAttachments.length === 0);
+  }
 
+  textarea.addEventListener('input', () => {
+    updateSendBtn();
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`;
   });
@@ -120,11 +186,50 @@ export function createChatWindow(
 
   function sendMessage(): void {
     const body = textarea.value.trim();
-    if (!body) return;
+    if ((!body && pendingAttachments.length === 0) || isUploading) return;
+    const attachments = pendingAttachments.length > 0 ? [...pendingAttachments] : undefined;
     textarea.value = '';
     textarea.style.height = 'auto';
-    sendBtn.disabled = true;
-    onSendMessage(body);
+    pendingAttachments = [];
+    renderAttachmentPreview();
+    updateSendBtn();
+    onSendMessage(body || ' ', attachments);
+  }
+
+  // File input
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.multiple = true;
+  fileInput.accept = ALLOWED_TYPES.join(',');
+  fileInput.style.display = 'none';
+  fileInput.addEventListener('change', () => {
+    void handleFiles(Array.from(fileInput.files ?? []));
+    fileInput.value = '';
+  });
+
+  async function handleFiles(files: File[]): Promise<void> {
+    if (!uploadManager) return;
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) continue;
+      isUploading = true;
+      updateSendBtn();
+      plusBtn.disabled = true;
+      try {
+        const { fileUrl } = await uploadManager.upload({
+          data: file,
+          mime: file.type,
+          originalFileName: file.name,
+        });
+        pendingAttachments.push({ filename: file.name, url: fileUrl, mimeType: file.type, size: file.size });
+        renderAttachmentPreview();
+      } catch {
+        // silently skip failed uploads
+      } finally {
+        isUploading = false;
+        plusBtn.disabled = false;
+        updateSendBtn();
+      }
+    }
   }
 
   const plusBtn = document.createElement('button');
@@ -132,14 +237,16 @@ export function createChatWindow(
   plusBtn.setAttribute('aria-label', 'Attach file');
   plusBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
 
-  const emojiBtn = document.createElement('button');
-  emojiBtn.className = 'haildesk-emoji-btn';
-  emojiBtn.setAttribute('aria-label', 'Emoji');
-  emojiBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`;
+  if (uploadManager) {
+    plusBtn.addEventListener('click', () => fileInput.click());
+  } else {
+    plusBtn.style.opacity = '0.4';
+    plusBtn.style.cursor = 'default';
+  }
 
   inputArea.appendChild(plusBtn);
+  inputArea.appendChild(fileInput);
   inputArea.appendChild(textarea);
-  inputArea.appendChild(emojiBtn);
   inputArea.appendChild(sendBtn);
 
   const namePrompt = document.createElement('div');
@@ -193,14 +300,15 @@ export function createChatWindow(
   footer.className = 'haildesk-footer';
   if (config.disclosureEnabled && config.disclosureText) {
     footer.textContent = config.disclosureText;
-  } else {
-    footer.textContent = `Powered by ${displayName}`;
+  } else if (config.plan !== 'enterprise') {
+    footer.innerHTML = `Powered by <a href="https://haildesk.com" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">Haildesk</a>`;
   }
 
   window.appendChild(header);
   window.appendChild(namePrompt);
   window.appendChild(messagesContainer);
   window.appendChild(typingEl);
+  window.appendChild(attachmentPreview);
   window.appendChild(inputArea);
   window.appendChild(footer);
 
@@ -219,9 +327,41 @@ export function createChatWindow(
     const displayType = message.senderType === 'ai' ? 'agent' : message.senderType;
     messageEl.className = `haildesk-message haildesk-message--${displayType}`;
 
-    const bubble = document.createElement('div');
-    bubble.className = 'haildesk-message-bubble';
-    bubble.textContent = message.body;
+    const wrapper = document.createElement('div');
+
+    const hasBody = message.body.trim().length > 0 && message.body.trim() !== ' ';
+    if (hasBody) {
+      const bubble = document.createElement('div');
+      bubble.className = 'haildesk-message-bubble';
+      bubble.textContent = message.body;
+      wrapper.appendChild(bubble);
+    }
+
+    // Render attachments
+    if (message.attachments && message.attachments.length > 0) {
+      message.attachments.forEach((att) => {
+        if (att.mimeType.startsWith('image/')) {
+          const link = document.createElement('a');
+          link.href = att.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          const img = document.createElement('img');
+          img.src = att.url;
+          img.alt = att.filename;
+          img.style.cssText = 'max-width:200px;max-height:150px;border-radius:8px;display:block;margin-top:4px;';
+          link.appendChild(img);
+          wrapper.appendChild(link);
+        } else {
+          const link = document.createElement('a');
+          link.href = att.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.className = 'haildesk-file-attachment';
+          link.innerHTML = `<span class="haildesk-file-icon">📄</span><span class="haildesk-file-name">${att.filename}</span><span class="haildesk-file-size">${formatBytes(att.size)}</span>`;
+          wrapper.appendChild(link);
+        }
+      });
+    }
 
     const time = document.createElement('div');
     time.className = 'haildesk-message-time';
@@ -229,9 +369,6 @@ export function createChatWindow(
       hour: '2-digit',
       minute: '2-digit',
     });
-
-    const wrapper = document.createElement('div');
-    wrapper.appendChild(bubble);
     wrapper.appendChild(time);
 
     messageEl.appendChild(wrapper);
@@ -251,7 +388,7 @@ export function createChatWindow(
 
   function enableInput(): void {
     textarea.disabled = false;
-    sendBtn.disabled = textarea.value.trim().length === 0;
+    updateSendBtn();
   }
 
   function updateDisclosure(text: string): void {

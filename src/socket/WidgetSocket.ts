@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { WidgetSocketConfig, IncomingMessage } from '../types';
+import { WidgetSocketConfig, IncomingMessage, ChatAttachment } from '../types';
 
 type SendAck =
   | { message: IncomingMessage; conversationId: string }
@@ -66,7 +66,7 @@ export class WidgetSocket {
     this.socket?.emit('conversation:join', conversationId);
   }
 
-  sendMessage(body: string, onConfirmed?: (conversationId: string) => void): void {
+  sendMessage(body: string, onConfirmed?: (conversationId: string) => void, attachments?: ChatAttachment[]): void {
     this.socket?.emit(
       'message:send',
       {
@@ -75,6 +75,7 @@ export class WidgetSocket {
         customerId: this.config.customerId,
         customerEmail: this.config.customerEmail,
         customerName: this.config.customerName,
+        attachments: attachments && attachments.length > 0 ? attachments : undefined,
       },
       (ack: SendAck) => {
         if ('error' in ack) {
