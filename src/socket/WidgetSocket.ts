@@ -22,7 +22,8 @@ export class WidgetSocket {
   }
 
   connect(): void {
-    this.socket = io(this.config.apiUrl, {
+    const socketUrl = new URL(this.config.apiUrl).origin;
+    this.socket = io(socketUrl, {
       auth: {
         apiKey: this.config.apiKey,
         customerId: this.config.customerId,
