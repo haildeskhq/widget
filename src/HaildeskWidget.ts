@@ -53,8 +53,6 @@ export class HaildeskWidget {
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl ?? import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-    console.log(this.apiUrl);
-
     const storedName = this.readStoredName();
 
     const resolvedCustomerId =
@@ -107,12 +105,10 @@ export class HaildeskWidget {
     this.renderBubble();
     this.renderWindow();
     this.initSocket();
-    console.log("[HaildeskWidget] Initialized");
   }
 
   private async loadOrgConfig(): Promise<void> {
     try {
-      console.log(this.apiUrl)
       const res = await fetch(`${this.apiUrl}/widget/widget-config`, {
         headers: { "X-API-Key": this.apiKey },
       });
@@ -122,11 +118,8 @@ export class HaildeskWidget {
           this.orgConfig = { ...this.orgConfig, ...data.data };
         }
       }
-    } catch (error) {
-      console.log(error);
-      console.warn(
-        "[HaildeskWidget] Could not load widget config, using defaults",
-      );
+    } catch {
+      // silently use defaults
     }
   }
 
@@ -318,6 +311,5 @@ export class HaildeskWidget {
     this.bubbleEl = null;
     this.windowEl = null;
     this.socket = null;
-    console.log("[HaildeskWidget] Destroyed");
   }
 }

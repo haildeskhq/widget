@@ -35,15 +35,13 @@ export class WidgetSocket {
     });
 
     this.socket.on('connect', () => {
-      console.log('[WidgetSocket] Connected');
       if (this.conversationId) {
         this.joinConversation(this.conversationId);
       }
       this.onConnectCallback?.();
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('[WidgetSocket] Disconnected:', reason);
+    this.socket.on('disconnect', () => {
       this.onDisconnectCallback?.();
     });
 
