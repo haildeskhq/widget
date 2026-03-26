@@ -298,11 +298,29 @@ export function createChatWindow(
 
   const footer = document.createElement('div');
   footer.className = 'haildesk-footer';
-  if (config.disclosureEnabled && config.disclosureText) {
-    footer.textContent = config.disclosureText;
-  } else if (config.plan !== 'enterprise') {
-    footer.innerHTML = `Powered by <a href="https://haildesk.com" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">Haildesk</a>`;
+
+  function renderFooter(disclosureText?: string): void {
+    footer.innerHTML = '';
+    if (disclosureText) {
+      const disclosureSpan = document.createElement('span');
+      disclosureSpan.textContent = disclosureText;
+      footer.appendChild(disclosureSpan);
+    }
+    if (config.plan !== 'enterprise') {
+      if (disclosureText) {
+        footer.appendChild(document.createTextNode(' · '));
+      }
+      const link = document.createElement('a');
+      link.href = 'https://haildesk.com';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.style.cssText = 'color:inherit;text-decoration:underline;text-underline-offset:2px;';
+      link.textContent = 'Powered by Haildesk';
+      footer.appendChild(link);
+    }
   }
+
+  renderFooter(config.disclosureEnabled && config.disclosureText ? config.disclosureText : undefined);
 
   window.appendChild(header);
   window.appendChild(namePrompt);
@@ -392,7 +410,7 @@ export function createChatWindow(
   }
 
   function updateDisclosure(text: string): void {
-    footer.textContent = text;
+    renderFooter(text || undefined);
   }
 
   return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure };
