@@ -231,7 +231,7 @@ export class HaildeskWidget {
         attachments: message.attachments,
       });
 
-      if ((message.senderType === 'ai' || message.senderType === 'agent') && this.conversationId) {
+      if (message.senderType === 'ai' || message.senderType === 'agent') {
         this.showResolveOption?.();
       }
 
@@ -264,6 +264,9 @@ export class HaildeskWidget {
           attachments: msg.attachments,
         });
       });
+      if (messages.length > 0) {
+        this.showResolveOption?.();
+      }
     });
   }
 
