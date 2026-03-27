@@ -18,7 +18,8 @@ function formatBytes(bytes: number): string {
 
 export function createChatWindow(
   config: ChatWindowConfig,
-  onSendMessage: (body: string, attachments?: ChatAttachment[]) => void
+  onSendMessage: (body: string, attachments?: ChatAttachment[]) => void,
+  onResolve?: (satisfied: boolean) => void
 ): {
   element: HTMLDivElement;
   addMessage: (message: ChatMessage) => void;
@@ -26,6 +27,7 @@ export function createChatWindow(
   hideTyping: () => void;
   enableInput: () => void;
   updateDisclosure: (text: string) => void;
+  showResolveOption: () => void;
 } {
   const bytescaleApiKey = (import.meta as { env?: { VITE_BYTESCALE_API_KEY?: string } }).env?.VITE_BYTESCALE_API_KEY ?? '';
   const uploadManager = bytescaleApiKey ? new UploadManager({ apiKey: bytescaleApiKey }) : null;
@@ -296,6 +298,46 @@ export function createChatWindow(
     sendBtn.disabled = true;
   }
 
+  // Resolve bar — hidden until showResolveOption() is called
+  const resolveBar = document.createElement('div');
+  resolveBar.className = 'haildesk-resolve-bar';
+  resolveBar.style.display = 'none';
+  resolveBar.innerHTML = `<span class="haildesk-resolve-label">All sorted?</span><button class="haildesk-resolve-btn">Mark as resolved</button>`;
+
+  const resolveBtn = resolveBar.querySelector('.haildesk-resolve-btn') as HTMLButtonElement;
+
+  // Satisfaction modal — shown after resolve is clicked
+  const satisfactionModal = document.createElement('div');
+  satisfactionModal.className = 'haildesk-satisfaction-modal';
+  satisfactionModal.style.display = 'none';
+  satisfactionModal.innerHTML = `
+    <p class="haildesk-satisfaction-title">Did we help?</p>
+    <div class="haildesk-satisfaction-options">
+      <button class="haildesk-satisfaction-btn haildesk-satisfaction-btn--yes" data-satisfied="true">✓ Got my answer</button>
+      <button class="haildesk-satisfaction-btn haildesk-satisfaction-btn--no" data-satisfied="false">Not really</button>
+    </div>
+  `;
+
+  resolveBtn.addEventListener('click', () => {
+    resolveBar.style.display = 'none';
+    satisfactionModal.style.display = 'flex';
+  });
+
+  satisfactionModal.querySelectorAll<HTMLButtonElement>('.haildesk-satisfaction-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const satisfied = btn.dataset.satisfied === 'true';
+      satisfactionModal.style.display = 'none';
+      // Show closed state
+      inputArea.style.display = 'none';
+      attachmentPreview.style.display = 'none';
+      const closedEl = document.createElement('div');
+      closedEl.className = 'haildesk-resolved-state';
+      closedEl.textContent = 'Thanks for reaching out. This chat is now closed.';
+      window.appendChild(closedEl);
+      onResolve?.(satisfied);
+    });
+  });
+
   const footer = document.createElement('div');
   footer.className = 'haildesk-footer';
 
@@ -326,6 +368,8 @@ export function createChatWindow(
   window.appendChild(namePrompt);
   window.appendChild(messagesContainer);
   window.appendChild(typingEl);
+  window.appendChild(satisfactionModal);
+  window.appendChild(resolveBar);
   window.appendChild(attachmentPreview);
   window.appendChild(inputArea);
   window.appendChild(footer);
@@ -413,5 +457,9 @@ export function createChatWindow(
     renderFooter(text || undefined);
   }
 
-  return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure };
+  function showResolveOption(): void {
+    resolveBar.style.display = 'flex';
+  }
+
+  return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, showResolveOption };
 }

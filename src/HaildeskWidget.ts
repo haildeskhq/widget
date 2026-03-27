@@ -29,6 +29,7 @@ export class HaildeskWidget {
   private hideTyping: (() => void) | null = null;
   private enableInput: (() => void) | null = null;
   private updateDisclosure: ((text: string) => void) | null = null;
+  private showResolveOption: (() => void) | null = null;
 
   private orgConfig: OrgConfig = {
     greeting: "Hi! How can we help you today?",
@@ -188,8 +189,8 @@ export class HaildeskWidget {
       },
     };
 
-    const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure } =
-      createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments));
+    const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, showResolveOption } =
+      createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments), (satisfied) => this.handleResolve(satisfied));
 
     this.windowEl = element;
     this.addMessageToWindow = addMessage;
@@ -197,6 +198,7 @@ export class HaildeskWidget {
     this.hideTyping = hideTyping;
     this.enableInput = enableInput;
     this.updateDisclosure = updateDisclosure;
+    this.showResolveOption = showResolveOption;
 
     const closeBtn = element.querySelector(".haildesk-close-btn");
     closeBtn?.addEventListener("click", () => this.close());
@@ -228,6 +230,10 @@ export class HaildeskWidget {
         createdAt: new Date(message.createdAt),
         attachments: message.attachments,
       });
+
+      if ((message.senderType === 'ai' || message.senderType === 'agent') && this.conversationId) {
+        this.showResolveOption?.();
+      }
 
       if (message.senderType === 'agent' && this.orgConfig.disclosureEnabled) {
         this.updateDisclosure?.(this.orgConfig.disclosureLiveText ?? '✦ Live support');
@@ -276,6 +282,22 @@ export class HaildeskWidget {
         this.writeToStorage(LS_CONVERSATION_KEY, confirmedConversationId);
       }
     }, attachments);
+  }
+
+  private async handleResolve(satisfied: boolean): Promise<void> {
+    if (!this.conversationId) return;
+    try {
+      await fetch(`${this.apiUrl}/widget/conversations/${this.conversationId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
+        body: JSON.stringify({ satisfied }),
+      });
+    } catch {
+      // fire-and-forget — UI already shows closed state
+    }
+    // Clear stored conversation so next open starts fresh
+    this.conversationId = null;
+    this.writeToStorage(LS_CONVERSATION_KEY, '');
   }
 
   open(): void {

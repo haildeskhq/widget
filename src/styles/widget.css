@@ -529,6 +529,86 @@
   background: #1e2a3a;
 }
 
+/* Resolve bar */
+.haildesk-resolve-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #1e2a3a;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  gap: 8px;
+}
+.haildesk-resolve-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.haildesk-resolve-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.haildesk-resolve-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+/* Satisfaction modal */
+.haildesk-satisfaction-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 14px;
+  background: #1e2a3a;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.haildesk-satisfaction-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f1f5f9;
+  margin: 0;
+}
+.haildesk-satisfaction-options {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.haildesk-satisfaction-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.haildesk-satisfaction-btn--yes:hover {
+  background: rgba(34,197,94,0.15);
+  border-color: rgba(34,197,94,0.4);
+}
+.haildesk-satisfaction-btn--no:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* Resolved state */
+.haildesk-resolved-state {
+  padding: 16px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
 /* Mobile responsive */
 @media (max-width: 480px) {
   .haildesk-window {
