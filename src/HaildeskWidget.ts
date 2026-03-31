@@ -110,7 +110,7 @@ export class HaildeskWidget {
 
   private async loadOrgConfig(): Promise<void> {
     try {
-      const res = await fetch(`${this.apiUrl}/widget/widget-config`, {
+      const res = await fetch(`${this.apiUrl}/api/v1/widget/widget-config`, {
         headers: { "X-API-Key": this.apiKey },
       });
       if (res.ok) {
@@ -290,7 +290,7 @@ export class HaildeskWidget {
   private async handleResolve(satisfied: boolean): Promise<void> {
     if (!this.conversationId) return;
     try {
-      await fetch(`${this.apiUrl}/widget/conversations/${this.conversationId}/resolve`, {
+      await fetch(`${this.apiUrl}/api/v1/widget/conversations/${this.conversationId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
         body: JSON.stringify({ satisfied }),

@@ -54,6 +54,8 @@ export function createChatWindow(
         <polyline points="9 22 9 12 15 12 15 22"/>
        </svg>`;
 
+  let isFullscreen = false;
+
   const header = document.createElement('div');
   header.className = 'haildesk-header';
   header.innerHTML = `
@@ -66,6 +68,16 @@ export function createChatWindow(
         ${config.isOnline ? 'Online' : 'Offline'}
       </div>
     </div>
+    <button class="haildesk-expand-btn" aria-label="Expand chat">
+      <svg class="haildesk-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+      </svg>
+      <svg class="haildesk-compress-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+        <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+      </svg>
+    </button>
     <button class="haildesk-close-btn" aria-label="Close chat">
       <svg viewBox="0 0 24 24">
         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -373,6 +385,17 @@ export function createChatWindow(
   window.appendChild(attachmentPreview);
   window.appendChild(inputArea);
   window.appendChild(footer);
+
+  const expandBtn = header.querySelector('.haildesk-expand-btn') as HTMLButtonElement;
+  const expandIcon = expandBtn.querySelector('.haildesk-expand-icon') as SVGElement;
+  const compressIcon = expandBtn.querySelector('.haildesk-compress-icon') as SVGElement;
+  expandBtn.addEventListener('click', () => {
+    isFullscreen = !isFullscreen;
+    window.classList.toggle('haildesk-window--fullscreen', isFullscreen);
+    expandIcon.style.display = isFullscreen ? 'none' : '';
+    compressIcon.style.display = isFullscreen ? '' : 'none';
+    expandBtn.setAttribute('aria-label', isFullscreen ? 'Collapse chat' : 'Expand chat');
+  });
 
   const closeBtn = header.querySelector('.haildesk-close-btn') as HTMLButtonElement;
   closeBtn.addEventListener('click', () => {
