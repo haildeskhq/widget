@@ -110,7 +110,7 @@ export class HaildeskWidget {
 
   private async loadOrgConfig(): Promise<void> {
     try {
-      const res = await fetch(`${this.apiUrl}/api/v1/widget/widget-config`, {
+      const res = await fetch(`${this.apiUrl}/widget/widget-config`, {
         headers: { "X-API-Key": this.apiKey },
       });
       if (res.ok) {
