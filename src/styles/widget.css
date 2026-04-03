@@ -341,6 +341,70 @@
   line-height: 1.6;
 }
 
+/* Attachment preview bar */
+.haildesk-attachment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 0;
+  background: #0d1117;
+}
+.haildesk-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #1e2a3a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 4px 6px 4px 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+  max-width: 140px;
+  position: relative;
+}
+.haildesk-attachment-chip--loading {
+  opacity: 0.7;
+}
+.haildesk-attachment-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.haildesk-attachment-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.haildesk-attachment-remove {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.haildesk-attachment-remove:hover {
+  color: #f87171;
+}
+@keyframes haildesk-spin {
+  to { transform: rotate(360deg); }
+}
+.haildesk-upload-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: haildesk-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
 /* Input area */
 .haildesk-input-area {
   padding: 12px;

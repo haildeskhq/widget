@@ -6,8 +6,6 @@ export type { ChatWindowConfig, ChatMessage };
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain', 'application/zip', 'video/mp4', 'audio/mpeg',
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -117,19 +115,32 @@ export function createChatWindow(
   // Pending attachments state
   let pendingAttachments: ChatAttachment[] = [];
   let isUploading = false;
+  let uploadingFiles: string[] = [];
 
   // Pending attachments preview bar
   const attachmentPreview = document.createElement('div');
   attachmentPreview.className = 'haildesk-attachment-preview';
   attachmentPreview.style.display = 'none';
 
+  const PDF_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="6" y="18" font-size="5" fill="#ef4444" stroke="none" font-family="sans-serif" font-weight="bold">PDF</text></svg>`;
+
   function renderAttachmentPreview(): void {
     attachmentPreview.innerHTML = '';
-    if (pendingAttachments.length === 0) {
+    if (pendingAttachments.length === 0 && uploadingFiles.length === 0) {
       attachmentPreview.style.display = 'none';
       return;
     }
     attachmentPreview.style.display = 'flex';
+
+    // Loading chips
+    uploadingFiles.forEach((filename) => {
+      const chip = document.createElement('div');
+      chip.className = 'haildesk-attachment-chip haildesk-attachment-chip--loading';
+      chip.innerHTML = `<span class="haildesk-upload-spinner"></span><span>${filename.length > 14 ? filename.slice(0, 12) + '…' : filename}</span>`;
+      attachmentPreview.appendChild(chip);
+    });
+
+    // Completed chips
     pendingAttachments.forEach((att, i) => {
       const chip = document.createElement('div');
       chip.className = 'haildesk-attachment-chip';
@@ -138,15 +149,20 @@ export function createChatWindow(
         const img = document.createElement('img');
         img.src = att.url;
         img.alt = att.filename;
-        img.style.cssText = 'width:20px;height:20px;object-fit:cover;border-radius:4px;';
+        img.className = 'haildesk-attachment-thumb';
         chip.appendChild(img);
+      } else {
+        const icon = document.createElement('span');
+        icon.className = 'haildesk-attachment-icon';
+        icon.innerHTML = PDF_ICON;
+        chip.appendChild(icon);
+        const name = document.createElement('span');
+        name.textContent = att.filename.length > 14 ? att.filename.slice(0, 12) + '…' : att.filename;
+        chip.appendChild(name);
       }
 
-      const name = document.createElement('span');
-      name.textContent = att.filename.length > 16 ? att.filename.slice(0, 14) + '…' : att.filename;
-      chip.appendChild(name);
-
       const removeBtn = document.createElement('button');
+      removeBtn.className = 'haildesk-attachment-remove';
       removeBtn.innerHTML = '&times;';
       removeBtn.setAttribute('aria-label', 'Remove attachment');
       removeBtn.addEventListener('click', () => {
@@ -226,6 +242,8 @@ export function createChatWindow(
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) continue;
       isUploading = true;
+      uploadingFiles.push(file.name);
+      renderAttachmentPreview();
       updateSendBtn();
       plusBtn.disabled = true;
       try {
@@ -235,12 +253,13 @@ export function createChatWindow(
           originalFileName: file.name,
         });
         pendingAttachments.push({ filename: file.name, url: fileUrl, mimeType: file.type, size: file.size });
-        renderAttachmentPreview();
       } catch {
         // silently skip failed uploads
       } finally {
+        uploadingFiles = uploadingFiles.filter((n) => n !== file.name);
         isUploading = false;
         plusBtn.disabled = false;
+        renderAttachmentPreview();
         updateSendBtn();
       }
     }
