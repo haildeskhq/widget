@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationDir": "dist/npm",
+    "emitDeclarationOnly": true,
+    "outDir": "dist/npm"
+  },
+  "include": ["src/index.ts", "src/HaildeskWidget.ts", "src/types.ts"]
+}

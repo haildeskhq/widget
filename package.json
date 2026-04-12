@@ -1,6 +1,6 @@
 {
   "name": "@haildesk/widget",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Haildesk chat widget",
   "keywords": [
     "haildesk",
@@ -14,10 +14,12 @@
   ],
   "main": "./dist/npm/index.cjs",
   "module": "./dist/npm/index.js",
+  "types": "./dist/npm/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/npm/index.js",
-      "require": "./dist/npm/index.cjs"
+      "require": "./dist/npm/index.cjs",
+      "types": "./dist/npm/index.d.ts"
     }
   },
   "files": [
@@ -27,7 +29,7 @@
     "dev": "vite",
     "build": "vite build && vite build --config vite.config.npm.ts",
     "build:cdn": "vite build",
-    "build:npm": "vite build --config vite.config.npm.ts",
+    "build:npm": "vite build --config vite.config.npm.ts && tsc -p tsconfig.build.json",
     "release": "npm run build:npm && npm publish --access public",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts"
