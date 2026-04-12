@@ -1,19 +1,40 @@
 {
   "name": "@haildesk/widget",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.0.3",
+  "description": "Haildesk chat widget",
+  "keywords": [
+    "haildesk",
+    "chat",
+    "widget",
+    "support",
+    "customer support",
+    "live chat",
+    "helpdesk",
+    "ai support"
+  ],
+  "main": "./dist/npm/index.cjs",
+  "module": "./dist/npm/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/npm/index.js",
+      "require": "./dist/npm/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.config.npm.ts",
+    "build:cdn": "vite build",
+    "build:npm": "vite build --config vite.config.npm.ts",
+    "release": "npm run build:npm && npm publish --access public",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts"
   },
-  "dependencies": {
-    "@bytescale/sdk": "^3.53.0",
-    "socket.io-client": "^4.7.5"
-  },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "socket.io-client": "^4.7.5",
     "typescript": "^5.4.0",
     "vite": "^5.3.1"
   }

@@ -4,7 +4,16 @@ import { WidgetSocket } from "./socket/WidgetSocket";
 import { HaildeskWidgetConfig, ChatMessage, ChatAttachment, OrgConfig } from "./types";
 import widgetCss from "./styles/widget.css?inline";
 
-// export type { HaildeskWidgetConfig };
+declare global {
+  interface Window {
+    Haildesk?: {
+      widget: HaildeskWidget;
+      open: () => void;
+      close: () => void;
+      destroy: () => void;
+    };
+  }
+}
 
 const LS_NAME_KEY = "haildesk-customer-name";
 const LS_CUSTOMER_ID_KEY = "haildesk-customer-id";
@@ -180,6 +189,8 @@ export class HaildeskWidget {
       disclosureEnabled: this.orgConfig.disclosureEnabled,
       disclosureText: this.orgConfig.disclosureText,
       requireNamePrompt: needsNamePrompt,
+      apiUrl: this.apiUrl,
+      apiKey: this.apiKey,
       onNameProvided: (name: string) => {
         this.storeCustomerName(name);
         this.customerConfig = { ...this.customerConfig, customerName: name };
@@ -336,5 +347,22 @@ export class HaildeskWidget {
     this.bubbleEl = null;
     this.windowEl = null;
     this.socket = null;
+  }
+
+  static init(config: HaildeskWidgetConfig): void {
+    if (window.Haildesk) {
+      console.warn('[Haildesk] Widget already initialized');
+      return;
+    }
+    const widget = new HaildeskWidget(config);
+    window.Haildesk = {
+      widget,
+      open: () => widget.open(),
+      close: () => widget.close(),
+      destroy: () => widget.destroy(),
+    };
+    widget.init().catch((err: unknown) => {
+      console.error('[Haildesk] Initialization failed:', err);
+    });
   }
 }

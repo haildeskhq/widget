@@ -1,4 +1,3 @@
-import { UploadManager } from '@bytescale/sdk';
 import { ChatWindowConfig, ChatMessage, ChatAttachment } from '../types';
 
 export type { ChatWindowConfig, ChatMessage };
@@ -27,8 +26,7 @@ export function createChatWindow(
   updateDisclosure: (text: string) => void;
   showResolveOption: () => void;
 } {
-  const bytescaleApiKey = (import.meta as { env?: { VITE_BYTESCALE_API_KEY?: string } }).env?.VITE_BYTESCALE_API_KEY ?? '';
-  const uploadManager = bytescaleApiKey ? new UploadManager({ apiKey: bytescaleApiKey }) : null;
+  const uploadEnabled = !!(config.apiUrl && config.apiKey);
 
   const window = document.createElement('div');
   window.className = [
@@ -238,7 +236,7 @@ export function createChatWindow(
   });
 
   async function handleFiles(files: File[]): Promise<void> {
-    if (!uploadManager) return;
+    if (!uploadEnabled) return;
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) continue;
       isUploading = true;
@@ -247,12 +245,19 @@ export function createChatWindow(
       updateSendBtn();
       plusBtn.disabled = true;
       try {
-        const { fileUrl } = await uploadManager.upload({
-          data: file,
-          mime: file.type,
-          originalFileName: file.name,
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${config.apiUrl}/widget/upload`, {
+          method: 'POST',
+          headers: { 'X-API-Key': config.apiKey! },
+          body: formData,
         });
-        pendingAttachments.push({ filename: file.name, url: fileUrl, mimeType: file.type, size: file.size });
+        if (!res.ok) throw new Error('Upload failed');
+        const json = await res.json() as { data?: { url?: string } };
+        const url = json.data?.url;
+        if (url) {
+          pendingAttachments.push({ filename: file.name, url, mimeType: file.type, size: file.size });
+        }
       } catch {
         // silently skip failed uploads
       } finally {
@@ -270,7 +275,7 @@ export function createChatWindow(
   plusBtn.setAttribute('aria-label', 'Attach file');
   plusBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
 
-  if (uploadManager) {
+  if (uploadEnabled) {
     plusBtn.addEventListener('click', () => fileInput.click());
   } else {
     plusBtn.style.opacity = '0.4';

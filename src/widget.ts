@@ -4,12 +4,6 @@ import { HaildeskWidgetConfig } from "./types";
 declare global {
   interface Window {
     HaildeskConfig?: HaildeskWidgetConfig;
-    Haildesk?: {
-      widget: HaildeskWidget;
-      open: () => void;
-      close: () => void;
-      destroy: () => void;
-    };
   }
 }
 

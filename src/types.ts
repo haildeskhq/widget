@@ -47,6 +47,8 @@ export interface ChatWindowConfig {
   requireNamePrompt?: boolean;
   onNameProvided?: (name: string) => void;
   plan?: string;
+  apiUrl?: string;
+  apiKey?: string;
 }
 
 export interface ChatMessage {
