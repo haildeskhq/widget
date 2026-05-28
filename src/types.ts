@@ -45,7 +45,7 @@ export interface ChatWindowConfig {
   disclosureEnabled?: boolean;
   disclosureText?: string;
   requireNamePrompt?: boolean;
-  onNameProvided?: (name: string) => void;
+  onContactProvided?: (contact: { name: string; email: string }) => void;
   plan?: string;
   apiUrl?: string;
   apiKey?: string;

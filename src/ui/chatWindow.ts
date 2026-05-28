@@ -295,7 +295,7 @@ export function createChatWindow(
     <div class="haildesk-name-prompt-inner">
       <div class="haildesk-name-prompt-emoji">👋</div>
       <p class="haildesk-name-prompt-title">Before we start…</p>
-      <p class="haildesk-name-prompt-sub">What should we call you?</p>
+      <p class="haildesk-name-prompt-sub">How can we reach you?</p>
       <input
         class="haildesk-name-input"
         type="text"
@@ -303,19 +303,41 @@ export function createChatWindow(
         maxlength="60"
         aria-label="Your name"
       />
+      <input
+        class="haildesk-email-input"
+        type="email"
+        placeholder="Email address"
+        maxlength="120"
+        autocomplete="email"
+        aria-label="Email address"
+      />
       <button class="haildesk-name-submit-btn" disabled>Start chat</button>
     </div>
   `;
 
   const nameInput = namePrompt.querySelector('.haildesk-name-input') as HTMLInputElement;
+  const emailInput = namePrompt.querySelector('.haildesk-email-input') as HTMLInputElement;
   const nameSubmitBtn = namePrompt.querySelector('.haildesk-name-submit-btn') as HTMLButtonElement;
 
-  nameInput.addEventListener('input', () => {
-    nameSubmitBtn.disabled = nameInput.value.trim().length === 0;
-  });
+  const updateNameSubmit = () => {
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    nameSubmitBtn.disabled = name.length === 0 || !isValidEmail(email);
+  };
+
+  nameInput.addEventListener('input', updateNameSubmit);
+  emailInput.addEventListener('input', updateNameSubmit);
 
   nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && nameInput.value.trim()) {
+    if (e.key === 'Enter' && !nameSubmitBtn.disabled) {
+      e.preventDefault();
+      submitName();
+    }
+  });
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !nameSubmitBtn.disabled) {
+      e.preventDefault();
       submitName();
     }
   });
@@ -324,9 +346,14 @@ export function createChatWindow(
 
   function submitName(): void {
     const name = nameInput.value.trim();
-    if (!name) return;
+    const email = emailInput.value.trim();
+    if (!name || !isValidEmail(email)) return;
     namePrompt.style.display = 'none';
-    config.onNameProvided?.(name);
+    config.onContactProvided?.({ name, email });
+  }
+
+  function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   if (config.requireNamePrompt) {

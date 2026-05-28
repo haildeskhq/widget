@@ -560,7 +560,8 @@
   margin: 0 0 8px;
 }
 
-.haildesk-name-input {
+.haildesk-name-input,
+.haildesk-email-input {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #1e2a3a;
@@ -573,11 +574,13 @@
   transition: border-color 0.15s;
 }
 
-.haildesk-name-input:focus {
+.haildesk-name-input:focus,
+.haildesk-email-input:focus {
   border-color: var(--haildesk-primary, #4F46E5);
 }
 
-.haildesk-name-input::placeholder {
+.haildesk-name-input::placeholder,
+.haildesk-email-input::placeholder {
   color: #64748b;
 }
 

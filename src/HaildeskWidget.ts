@@ -16,6 +16,7 @@ declare global {
 }
 
 const LS_NAME_KEY = "haildesk-customer-name";
+const LS_EMAIL_KEY = "haildesk-customer-email";
 const LS_CUSTOMER_ID_KEY = "haildesk-customer-id";
 const LS_CONVERSATION_KEY = "haildesk-conversation-id";
 
@@ -64,13 +65,14 @@ export class HaildeskWidget {
     this.apiUrl = config.apiUrl ?? import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
     const storedName = this.readStoredName();
+    const storedEmail = this.readStoredEmail();
 
     const resolvedCustomerId =
       config.customerId ?? this.resolveAnonymousCustomerId();
 
     this.customerConfig = {
       customerId: resolvedCustomerId,
-      customerEmail: config.customerEmail,
+      customerEmail: config.customerEmail ?? storedEmail ?? undefined,
       customerName: config.customerName ?? storedName ?? undefined,
     };
 
@@ -105,8 +107,16 @@ export class HaildeskWidget {
     return this.readFromStorage(LS_NAME_KEY);
   }
 
+  private readStoredEmail(): string | null {
+    return this.readFromStorage(LS_EMAIL_KEY);
+  }
+
   private storeCustomerName(name: string): void {
     this.writeToStorage(LS_NAME_KEY, name);
+  }
+
+  private storeCustomerEmail(email: string): void {
+    this.writeToStorage(LS_EMAIL_KEY, email);
   }
 
   async init(): Promise<void> {
@@ -178,7 +188,7 @@ export class HaildeskWidget {
   private renderWindow(): void {
     if (!this.shadowRoot) return;
 
-    const needsNamePrompt = !this.customerConfig.customerName;
+    const needsContactPrompt = !this.customerConfig.customerName || !this.customerConfig.customerEmail;
 
     const windowConfig = {
       ...this.orgConfig,
@@ -188,12 +198,13 @@ export class HaildeskWidget {
       aiPersonaAvatar: this.orgConfig.aiPersonaAvatar,
       disclosureEnabled: this.orgConfig.disclosureEnabled,
       disclosureText: this.orgConfig.disclosureText,
-      requireNamePrompt: needsNamePrompt,
+      requireNamePrompt: needsContactPrompt,
       apiUrl: this.apiUrl,
       apiKey: this.apiKey,
-      onNameProvided: (name: string) => {
+      onContactProvided: ({ name, email }) => {
         this.storeCustomerName(name);
-        this.customerConfig = { ...this.customerConfig, customerName: name };
+        this.storeCustomerEmail(email);
+        this.customerConfig = { ...this.customerConfig, customerName: name, customerEmail: email };
         this.socket?.disconnect();
         this.initSocket();
         this.enableInput?.();
