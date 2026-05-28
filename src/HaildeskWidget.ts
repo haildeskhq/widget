@@ -201,7 +201,7 @@ export class HaildeskWidget {
       requireNamePrompt: needsContactPrompt,
       apiUrl: this.apiUrl,
       apiKey: this.apiKey,
-      onContactProvided: ({ name, email }) => {
+      onContactProvided: ({ name, email }: { name: string; email: string }) => {
         this.storeCustomerName(name);
         this.storeCustomerEmail(email);
         this.customerConfig = { ...this.customerConfig, customerName: name, customerEmail: email };
