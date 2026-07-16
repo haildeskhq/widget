@@ -11,6 +11,7 @@ declare global {
       open: () => void;
       close: () => void;
       destroy: () => void;
+      setCustomStyles: (css: string) => void;
     };
   }
 }
@@ -23,12 +24,14 @@ const LS_CONVERSATION_KEY = "haildesk-conversation-id";
 export class HaildeskWidget {
   private readonly apiKey: string;
   private readonly apiUrl: string;
+  private customStyles: string;
   private customerConfig: Omit<HaildeskWidgetConfig, "apiKey" | "apiUrl">;
 
   private shadowRoot: ShadowRoot | null = null;
   private hostEl: HTMLDivElement | null = null;
   private bubbleEl: HTMLButtonElement | null = null;
   private windowEl: HTMLDivElement | null = null;
+  private customStyleEl: HTMLStyleElement | null = null;
   private isOpen = false;
   private unreadCount = 0;
 
@@ -63,6 +66,7 @@ export class HaildeskWidget {
   constructor(config: HaildeskWidgetConfig) {
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl ?? import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+    this.customStyles = config.customStyles ?? "";
 
     const storedName = this.readStoredName();
     const storedEmail = this.readStoredEmail();
@@ -168,6 +172,11 @@ export class HaildeskWidget {
     const styleEl = document.createElement("style");
     styleEl.textContent = widgetCss;
     this.shadowRoot.appendChild(styleEl);
+
+    this.customStyleEl = document.createElement("style");
+    this.customStyleEl.setAttribute("data-haildesk-custom-styles", "");
+    this.customStyleEl.textContent = this.customStyles;
+    this.shadowRoot.appendChild(this.customStyleEl);
 
     document.body.appendChild(this.hostEl);
   }
@@ -350,6 +359,18 @@ export class HaildeskWidget {
     }
   }
 
+  /**
+   * Replaces the current custom CSS without recreating the widget.
+   * Custom CSS is loaded after Haildesk's built-in CSS and therefore wins
+   * when selectors have the same specificity.
+   */
+  setCustomStyles(css: string): void {
+    this.customStyles = css;
+    if (this.customStyleEl) {
+      this.customStyleEl.textContent = css;
+    }
+  }
+
   destroy(): void {
     this.socket?.disconnect();
     this.hostEl?.remove();
@@ -357,6 +378,7 @@ export class HaildeskWidget {
     this.shadowRoot = null;
     this.bubbleEl = null;
     this.windowEl = null;
+    this.customStyleEl = null;
     this.socket = null;
   }
 
@@ -371,6 +393,7 @@ export class HaildeskWidget {
       open: () => widget.open(),
       close: () => widget.close(),
       destroy: () => widget.destroy(),
+      setCustomStyles: (css: string) => widget.setCustomStyles(css),
     };
     widget.init().catch((err: unknown) => {
       console.error('[Haildesk] Initialization failed:', err);

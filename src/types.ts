@@ -29,6 +29,11 @@ export interface HaildeskWidgetConfig {
   customerId?: string;
   customerEmail?: string;
   customerName?: string;
+  /**
+   * CSS injected into the widget's Shadow DOM after the built-in stylesheet.
+   * Use widget class names to override any visual property.
+   */
+  customStyles?: string;
 }
 
 export interface ChatWindowConfig {

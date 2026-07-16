@@ -29,6 +29,7 @@ function bootstrap(): void {
     open: () => widget.open(),
     close: () => widget.close(),
     destroy: () => widget.destroy(),
+    setCustomStyles: (css: string) => widget.setCustomStyles(css),
   };
 
   widget.init().catch((err: unknown) => {
