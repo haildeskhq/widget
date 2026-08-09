@@ -1,7 +1,7 @@
 import { createBubble, updateBubbleIcon, updateBubbleCount } from "./ui/bubble";
 import { createChatWindow } from "./ui/chatWindow";
 import { WidgetSocket } from "./socket/WidgetSocket";
-import { HaildeskWidgetConfig, ChatMessage, ChatAttachment, OrgConfig } from "./types";
+import { HaildeskWidgetConfig, ChatMessage, ChatAttachment, OrgConfig, Faq } from "./types";
 import widgetCss from "./styles/widget.css?inline";
 
 declare global {
@@ -37,6 +37,7 @@ export class HaildeskWidget {
 
   private socket: WidgetSocket | null = null;
   private conversationId: string | null = null;
+  private faqs: Faq[] = [];
   private addMessageToWindow: ((msg: ChatMessage) => void) | null = null;
   private showTyping: (() => void) | null = null;
   private hideTyping: (() => void) | null = null;
@@ -125,7 +126,7 @@ export class HaildeskWidget {
   }
 
   async init(): Promise<void> {
-    await this.loadOrgConfig();
+    await Promise.all([this.loadOrgConfig(), this.loadFaqs()]);
     this.createShadowDOM();
     this.renderBubble();
     this.renderWindow();
@@ -145,6 +146,20 @@ export class HaildeskWidget {
       }
     } catch {
       // silently use defaults
+    }
+  }
+
+  private async loadFaqs(): Promise<void> {
+    try {
+      const res = await fetch(`${this.apiUrl}/widget/faqs`, {
+        headers: { "X-API-Key": this.apiKey },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { data?: Faq[] };
+        this.faqs = data.data ?? [];
+      }
+    } catch {
+      // silently show no FAQs
     }
   }
 
@@ -209,6 +224,7 @@ export class HaildeskWidget {
       requireNamePrompt: needsContactPrompt,
       apiUrl: this.apiUrl,
       apiKey: this.apiKey,
+      faqs: this.faqs,
       onContactProvided: ({ name, email }: { name: string; email: string }) => {
         this.storeCustomerName(name);
         this.storeCustomerEmail(email);
