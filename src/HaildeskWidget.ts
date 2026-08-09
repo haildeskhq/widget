@@ -42,6 +42,7 @@ export class HaildeskWidget {
   private hideTyping: (() => void) | null = null;
   private enableInput: (() => void) | null = null;
   private updateDisclosure: ((text: string) => void) | null = null;
+  private updateHeaderTitle: ((name: string) => void) | null = null;
   private showResolveOption: (() => void) | null = null;
 
   private orgConfig: OrgConfig = {
@@ -201,9 +202,7 @@ export class HaildeskWidget {
 
     const windowConfig = {
       ...this.orgConfig,
-      headerTitle: this.orgConfig.aiEnabled && this.orgConfig.aiPersonaName
-        ? this.orgConfig.aiPersonaName
-        : this.orgConfig.orgName,
+      headerTitle: this.orgConfig.orgName,
       aiPersonaAvatar: this.orgConfig.aiPersonaAvatar,
       disclosureEnabled: this.orgConfig.disclosureEnabled,
       disclosureText: this.orgConfig.disclosureText,
@@ -220,7 +219,7 @@ export class HaildeskWidget {
       },
     };
 
-    const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, showResolveOption } =
+    const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption } =
       createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments), (satisfied) => this.handleResolve(satisfied));
 
     this.windowEl = element;
@@ -229,6 +228,7 @@ export class HaildeskWidget {
     this.hideTyping = hideTyping;
     this.enableInput = enableInput;
     this.updateDisclosure = updateDisclosure;
+    this.updateHeaderTitle = updateHeaderTitle;
     this.showResolveOption = showResolveOption;
 
     const closeBtn = element.querySelector(".haildesk-close-btn");
@@ -270,6 +270,12 @@ export class HaildeskWidget {
         this.updateDisclosure?.(this.orgConfig.disclosureLiveText ?? '✦ Live support');
       }
 
+      if (message.senderType === 'agent' && message.senderName) {
+        this.updateHeaderTitle?.(message.senderName);
+      } else if (message.senderType === 'ai') {
+        this.updateHeaderTitle?.(this.orgConfig.aiPersonaName ?? 'Assistant');
+      }
+
       if (!this.isOpen) {
         this.unreadCount++;
         if (this.bubbleEl) {
@@ -297,6 +303,12 @@ export class HaildeskWidget {
       });
       if (messages.length > 0) {
         this.showResolveOption?.();
+      }
+      const lastResponder = [...messages].reverse().find((m) => m.senderType === 'agent' || m.senderType === 'ai');
+      if (lastResponder?.senderType === 'agent' && lastResponder.senderName) {
+        this.updateHeaderTitle?.(lastResponder.senderName);
+      } else if (lastResponder?.senderType === 'ai') {
+        this.updateHeaderTitle?.(this.orgConfig.aiPersonaName ?? 'Assistant');
       }
     });
   }

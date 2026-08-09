@@ -1,4 +1,5 @@
 import { ChatWindowConfig, ChatMessage, ChatAttachment } from '../types';
+import { createVoiceNotePlayer } from './voiceNotePlayer';
 
 export type { ChatWindowConfig, ChatMessage };
 
@@ -6,11 +7,25 @@ const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'application/pdf',
 ];
+const AUDIO_TYPES = ['audio/webm', 'audio/ogg', 'audio/mp4'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_RECORDING_SECONDS = 300; // 5 minutes
+const MIC_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+
+function pickMicMimeType(): string {
+  if (typeof MediaRecorder === 'undefined') return '';
+  return MIC_MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported?.(t)) ?? '';
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export function createChatWindow(
@@ -24,6 +39,7 @@ export function createChatWindow(
   hideTyping: () => void;
   enableInput: () => void;
   updateDisclosure: (text: string) => void;
+  updateHeaderTitle: (name: string) => void;
   showResolveOption: () => void;
 } {
   const uploadEnabled = !!(config.apiUrl && config.apiKey);
@@ -121,6 +137,7 @@ export function createChatWindow(
   attachmentPreview.style.display = 'none';
 
   const PDF_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="6" y="18" font-size="5" fill="#ef4444" stroke="none" font-family="sans-serif" font-weight="bold">PDF</text></svg>`;
+  const MIC_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3z"/></svg>`;
 
   function renderAttachmentPreview(): void {
     attachmentPreview.innerHTML = '';
@@ -149,6 +166,14 @@ export function createChatWindow(
         img.alt = att.filename;
         img.className = 'haildesk-attachment-thumb';
         chip.appendChild(img);
+      } else if (att.mimeType.startsWith('audio/')) {
+        const icon = document.createElement('span');
+        icon.className = 'haildesk-attachment-icon';
+        icon.innerHTML = MIC_ICON;
+        chip.appendChild(icon);
+        const name = document.createElement('span');
+        name.textContent = att.durationSec !== undefined ? `Voice note · ${formatDuration(att.durationSec)}` : 'Voice note';
+        chip.appendChild(name);
       } else {
         const icon = document.createElement('span');
         icon.className = 'haildesk-attachment-icon';
@@ -282,7 +307,156 @@ export function createChatWindow(
     plusBtn.style.cursor = 'default';
   }
 
+  // Voice notes (Pro/Enterprise only)
+  const voiceNotesEnabled = uploadEnabled && !!config.voiceNotesEnabled && typeof MediaRecorder !== 'undefined';
+
+  let mediaRecorder: MediaRecorder | null = null;
+  let recordedChunks: Blob[] = [];
+  let recordingMimeType = '';
+  let recordingSeconds = 0;
+  let recordingTimer: ReturnType<typeof setInterval> | null = null;
+  let stopAction: 'send' | 'cancel' = 'send';
+  let isRecording = false;
+
+  const recordingBar = document.createElement('div');
+  recordingBar.className = 'haildesk-recording-bar';
+  recordingBar.style.display = 'none';
+
+  const recordingDot = document.createElement('span');
+  recordingDot.className = 'haildesk-recording-dot';
+  const recordingTime = document.createElement('span');
+  recordingTime.className = 'haildesk-recording-time';
+  recordingTime.textContent = '0:00';
+  const recordingLabel = document.createElement('span');
+  recordingLabel.className = 'haildesk-recording-label';
+  recordingLabel.textContent = 'Recording voice note…';
+
+  const recordingCancelBtn = document.createElement('button');
+  recordingCancelBtn.className = 'haildesk-recording-btn haildesk-recording-cancel';
+  recordingCancelBtn.setAttribute('aria-label', 'Cancel recording');
+  recordingCancelBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+  const recordingStopBtn = document.createElement('button');
+  recordingStopBtn.className = 'haildesk-recording-btn haildesk-recording-stop';
+  recordingStopBtn.setAttribute('aria-label', 'Stop and attach');
+  recordingStopBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12.75 10 18.75 20 5.25"/></svg>`;
+
+  recordingBar.appendChild(recordingDot);
+  recordingBar.appendChild(recordingTime);
+  recordingBar.appendChild(recordingLabel);
+  recordingBar.appendChild(recordingCancelBtn);
+  recordingBar.appendChild(recordingStopBtn);
+
+  async function uploadVoiceNote(file: File, durationSec: number): Promise<void> {
+    isUploading = true;
+    uploadingFiles.push(file.name);
+    renderAttachmentPreview();
+    updateSendBtn();
+    plusBtn.disabled = true;
+    micBtn.disabled = true;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${config.apiUrl}/widget/upload`, {
+        method: 'POST',
+        headers: { 'X-API-Key': config.apiKey! },
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const json = await res.json() as { data?: { url?: string } };
+      const url = json.data?.url;
+      if (url) {
+        pendingAttachments.push({ filename: file.name, url, mimeType: file.type, size: file.size, durationSec });
+      }
+    } catch {
+      // silently skip failed uploads
+    } finally {
+      uploadingFiles = uploadingFiles.filter((n) => n !== file.name);
+      isUploading = false;
+      plusBtn.disabled = false;
+      micBtn.disabled = false;
+      renderAttachmentPreview();
+      updateSendBtn();
+    }
+  }
+
+  function stopRecording(action: 'send' | 'cancel'): void {
+    stopAction = action;
+    if (recordingTimer) {
+      clearInterval(recordingTimer);
+      recordingTimer = null;
+    }
+    isRecording = false;
+    recordingBar.style.display = 'none';
+    mediaRecorder?.stop();
+  }
+
+  async function startRecording(): Promise<void> {
+    if (!voiceNotesEnabled || isRecording) return;
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      // Permission denied or unavailable — silently no-op, mic button stays usable to retry
+      return;
+    }
+
+    const mimeType = pickMicMimeType();
+    recordingMimeType = mimeType;
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    recordedChunks = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+    recorder.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const chunks = recordedChunks;
+      recordedChunks = [];
+      if (stopAction === 'send' && chunks.length > 0) {
+        const finalMimeType = recordingMimeType || chunks[0].type || 'audio/webm';
+        if (AUDIO_TYPES.includes(finalMimeType.split(';')[0].trim())) {
+          const file = new File([new Blob(chunks, { type: finalMimeType })], `voice-note-${Date.now()}.webm`, { type: finalMimeType });
+          void uploadVoiceNote(file, recordingSeconds);
+        }
+      }
+    };
+
+    mediaRecorder = recorder;
+    recordingSeconds = 0;
+    recordingTime.textContent = formatDuration(0);
+    recorder.start();
+    isRecording = true;
+    recordingBar.style.display = 'flex';
+
+    recordingTimer = setInterval(() => {
+      recordingSeconds += 1;
+      recordingTime.textContent = formatDuration(recordingSeconds);
+      if (recordingSeconds >= MAX_RECORDING_SECONDS) {
+        stopRecording('send');
+      }
+    }, 1000);
+  }
+
+  recordingCancelBtn.addEventListener('click', () => stopRecording('cancel'));
+  recordingStopBtn.addEventListener('click', () => stopRecording('send'));
+
+  const micBtn = document.createElement('button');
+  micBtn.className = 'haildesk-mic-btn';
+  micBtn.setAttribute('aria-label', 'Record voice note');
+  micBtn.innerHTML = MIC_ICON;
+
+  if (voiceNotesEnabled) {
+    micBtn.addEventListener('click', () => void startRecording());
+  } else {
+    micBtn.style.opacity = '0.4';
+    micBtn.style.cursor = 'default';
+    micBtn.title = uploadEnabled ? 'Voice notes are available on Pro/Enterprise plans' : '';
+  }
+
   inputArea.appendChild(plusBtn);
+  inputArea.appendChild(micBtn);
   inputArea.appendChild(fileInput);
   inputArea.appendChild(textarea);
   inputArea.appendChild(sendBtn);
@@ -433,6 +607,7 @@ export function createChatWindow(
   window.appendChild(typingEl);
   window.appendChild(satisfactionModal);
   window.appendChild(resolveBar);
+  window.appendChild(recordingBar);
   window.appendChild(attachmentPreview);
   window.appendChild(inputArea);
   window.appendChild(footer);
@@ -487,6 +662,8 @@ export function createChatWindow(
           img.style.cssText = 'max-width:200px;max-height:150px;border-radius:8px;display:block;margin-top:4px;';
           link.appendChild(img);
           wrapper.appendChild(link);
+        } else if (att.mimeType.startsWith('audio/')) {
+          wrapper.appendChild(createVoiceNotePlayer(att.url, att.durationSec));
         } else {
           const link = document.createElement('a');
           link.href = att.url;
@@ -531,9 +708,14 @@ export function createChatWindow(
     renderFooter(text || undefined);
   }
 
+  const headerTitleEl = header.querySelector('.haildesk-header-title') as HTMLDivElement;
+  function updateHeaderTitle(name: string): void {
+    headerTitleEl.textContent = name;
+  }
+
   function showResolveOption(): void {
     resolveBar.style.display = 'flex';
   }
 
-  return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, showResolveOption };
+  return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption };
 }

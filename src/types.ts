@@ -12,12 +12,14 @@ export interface ChatAttachment {
   url: string;
   mimeType: string;
   size: number;
+  durationSec?: number;
 }
 
 export interface IncomingMessage {
   id: string;
   body: string;
   senderType: 'agent' | 'customer' | 'system' | 'ai';
+  senderName?: string;
   createdAt: Date;
   conversationId: string;
   attachments?: ChatAttachment[];
@@ -54,6 +56,7 @@ export interface ChatWindowConfig {
   plan?: string;
   apiUrl?: string;
   apiKey?: string;
+  voiceNotesEnabled?: boolean;
 }
 
 export interface ChatMessage {
@@ -88,4 +91,5 @@ export interface OrgConfig {
   disclosureText?: string;
   disclosureLiveText?: string;
   plan?: string;
+  voiceNotesEnabled?: boolean;
 }
