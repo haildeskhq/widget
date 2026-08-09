@@ -33,8 +33,8 @@ HaildeskWidget.init({
 The widget is rendered in a Shadow DOM. Pass CSS through `customStyles` to
 override any part of it:
 
-See the [complete customization reference](./CUSTOM_STYLES.md) for every
-available CSS variable, class, state, icon selector, and example.
+See the [complete customization reference](https://haildesk.com/docs#custom-widget-styles)
+for every available CSS variable, class, state, icon selector, and example.
 
 ```js
 HaildeskWidget.init({

@@ -324,6 +324,63 @@
   text-align: left;
 }
 
+/* Voice note player */
+.haildesk-voice-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-top: 4px;
+  min-width: 200px;
+  max-width: 240px;
+}
+.haildesk-voice-play-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(96,165,250,0.2);
+  color: #60a5fa;
+  transition: background 0.15s;
+}
+.haildesk-voice-play-btn:hover {
+  background: rgba(96,165,250,0.3);
+}
+.haildesk-voice-bars {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  cursor: pointer;
+}
+.haildesk-voice-bar {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  transition: opacity 0.1s, background 0.1s;
+}
+.haildesk-voice-bar--active {
+  background: #60a5fa;
+  opacity: 1;
+}
+.haildesk-voice-time {
+  font-size: 10px;
+  color: currentColor;
+  opacity: 0.7;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Greeting / empty state */
 .haildesk-greeting {
   padding: 24px 16px;
@@ -635,6 +692,86 @@
 .haildesk-plus-btn:hover {
   color: white;
   background: #1e2a3a;
+}
+
+/* Mic button */
+.haildesk-mic-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.haildesk-mic-btn:hover {
+  color: white;
+  background: #1e2a3a;
+}
+.haildesk-mic-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Voice note recording bar */
+.haildesk-recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #0d1117;
+  border-top: 1px solid #1e2a3a;
+}
+.haildesk-recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  animation: haildesk-recording-pulse 1.2s ease-in-out infinite;
+}
+.haildesk-recording-time {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #e2e8f0;
+}
+.haildesk-recording-label {
+  font-size: 12px;
+  color: #94a3b8;
+  flex: 1;
+}
+.haildesk-recording-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.haildesk-recording-cancel {
+  color: #94a3b8;
+}
+.haildesk-recording-cancel:hover {
+  color: #f87171;
+  background: #1e2a3a;
+}
+.haildesk-recording-stop {
+  color: var(--haildesk-primary, #4F46E5);
+}
+.haildesk-recording-stop:hover {
+  background: #1e2a3a;
+}
+@keyframes haildesk-recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Resolve bar */
