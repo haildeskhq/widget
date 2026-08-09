@@ -15,6 +15,11 @@ export interface ChatAttachment {
   durationSec?: number;
 }
 
+export interface Faq {
+  question: string;
+  answer: string;
+}
+
 export interface IncomingMessage {
   id: string;
   body: string;
@@ -57,6 +62,7 @@ export interface ChatWindowConfig {
   apiUrl?: string;
   apiKey?: string;
   voiceNotesEnabled?: boolean;
+  faqs?: Faq[];
 }
 
 export interface ChatMessage {

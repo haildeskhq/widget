@@ -68,6 +68,17 @@ export function createChatWindow(
 
   let isFullscreen = false;
 
+  const hasFaqs = !!(config.faqs && config.faqs.length > 0);
+  const faqBtnHtml = hasFaqs
+    ? `<button class="haildesk-faq-btn" aria-label="View FAQs">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </button>`
+    : '';
+
   const header = document.createElement('div');
   header.className = 'haildesk-header';
   header.innerHTML = `
@@ -80,6 +91,7 @@ export function createChatWindow(
         ${config.isOnline ? 'Online' : 'Offline'}
       </div>
     </div>
+    ${faqBtnHtml}
     <button class="haildesk-expand-btn" aria-label="Expand chat">
       <svg class="haildesk-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
@@ -601,6 +613,57 @@ export function createChatWindow(
 
   renderFooter(config.disclosureEnabled && config.disclosureText ? config.disclosureText : undefined);
 
+  // FAQ view — a full replacement for the chat content, shown via the header's FAQ button
+  const faqView = document.createElement('div');
+  faqView.className = 'haildesk-faq-view';
+  faqView.style.display = 'none';
+
+  const faqHeader = document.createElement('div');
+  faqHeader.className = 'haildesk-faq-header';
+  faqHeader.innerHTML = `
+    <button class="haildesk-faq-back-btn" aria-label="Back to chat">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="haildesk-faq-header-title">FAQs</span>
+  `;
+
+  const faqList = document.createElement('div');
+  faqList.className = 'haildesk-faq-list';
+
+  (config.faqs ?? []).forEach((faq) => {
+    const item = document.createElement('div');
+    item.className = 'haildesk-faq-item';
+
+    const questionBtn = document.createElement('button');
+    questionBtn.className = 'haildesk-faq-question';
+    questionBtn.innerHTML = `
+      <span>${faq.question}</span>
+      <svg class="haildesk-faq-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    `;
+
+    const answerEl = document.createElement('div');
+    answerEl.className = 'haildesk-faq-answer';
+    answerEl.textContent = faq.answer;
+    answerEl.style.display = 'none';
+
+    questionBtn.addEventListener('click', () => {
+      const isOpen = answerEl.style.display !== 'none';
+      answerEl.style.display = isOpen ? 'none' : 'block';
+      item.classList.toggle('haildesk-faq-item--open', !isOpen);
+    });
+
+    item.appendChild(questionBtn);
+    item.appendChild(answerEl);
+    faqList.appendChild(item);
+  });
+
+  faqView.appendChild(faqHeader);
+  faqView.appendChild(faqList);
+
   window.appendChild(header);
   window.appendChild(namePrompt);
   window.appendChild(messagesContainer);
@@ -611,6 +674,7 @@ export function createChatWindow(
   window.appendChild(attachmentPreview);
   window.appendChild(inputArea);
   window.appendChild(footer);
+  window.appendChild(faqView);
 
   const expandBtn = header.querySelector('.haildesk-expand-btn') as HTMLButtonElement;
   const expandIcon = expandBtn.querySelector('.haildesk-expand-icon') as SVGElement;
@@ -626,6 +690,28 @@ export function createChatWindow(
   const closeBtn = header.querySelector('.haildesk-close-btn') as HTMLButtonElement;
   closeBtn.addEventListener('click', () => {
     window.classList.add('haildesk-window--hidden');
+  });
+
+  const faqBtn = header.querySelector('.haildesk-faq-btn') as HTMLButtonElement | null;
+  const faqBackBtn = faqHeader.querySelector('.haildesk-faq-back-btn') as HTMLButtonElement;
+  const chatViewEls = [
+    namePrompt, messagesContainer, typingEl, satisfactionModal,
+    resolveBar, recordingBar, attachmentPreview, inputArea, footer,
+  ];
+
+  faqBtn?.addEventListener('click', () => {
+    chatViewEls.forEach((el) => {
+      el.dataset.haildeskPrevDisplay = el.style.display;
+      el.style.display = 'none';
+    });
+    faqView.style.display = 'flex';
+  });
+
+  faqBackBtn.addEventListener('click', () => {
+    faqView.style.display = 'none';
+    chatViewEls.forEach((el) => {
+      el.style.display = el.dataset.haildeskPrevDisplay ?? '';
+    });
   });
 
   function addMessage(message: ChatMessage): void {
