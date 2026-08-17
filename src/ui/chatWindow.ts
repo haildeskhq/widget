@@ -1,5 +1,6 @@
 import { ChatWindowConfig, ChatMessage, ChatAttachment } from '../types';
 import { createVoiceNotePlayer } from './voiceNotePlayer';
+import { formatMessageBody } from './formatMessage';
 
 export type { ChatWindowConfig, ChatMessage };
 
@@ -730,7 +731,7 @@ export function createChatWindow(
     if (hasBody) {
       const bubble = document.createElement('div');
       bubble.className = 'haildesk-message-bubble';
-      bubble.textContent = message.body;
+      bubble.innerHTML = formatMessageBody(message.body);
       wrapper.appendChild(bubble);
     }
 

@@ -404,6 +404,28 @@
   word-break: break-word;
 }
 
+.haildesk-message-bubble div {
+  margin: 0;
+}
+
+.haildesk-message-bubble div + div {
+  margin-top: 6px;
+}
+
+.haildesk-message-bubble ul,
+.haildesk-message-bubble ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.haildesk-message-bubble li {
+  margin: 2px 0;
+}
+
+.haildesk-message-bubble strong {
+  font-weight: 600;
+}
+
 .haildesk-message--agent .haildesk-message-bubble {
   background: var(--haildesk-secondary, #1e2a3a);
   color: #f1f5f9;
