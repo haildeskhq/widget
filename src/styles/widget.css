@@ -408,7 +408,7 @@
   margin: 0;
 }
 
-.haildesk-message-bubble div + div {
+.haildesk-message-bubble > * + * {
   margin-top: 6px;
 }
 

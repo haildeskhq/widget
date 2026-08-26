@@ -3,6 +3,16 @@ import { createChatWindow } from "./ui/chatWindow";
 import { WidgetSocket } from "./socket/WidgetSocket";
 import { HaildeskWidgetConfig, ChatMessage, ChatAttachment, OrgConfig, Faq } from "./types";
 import widgetCss from "./styles/widget.css?inline";
+import {
+  readStoredCustomerName,
+  readStoredCustomerEmail,
+  storeCustomerName,
+  storeCustomerEmail,
+  readStoredConversationId,
+  storeConversationId,
+  clearStoredConversationId,
+  resolveAnonymousCustomerId,
+} from "./lib/anonymousCustomer";
 
 declare global {
   interface Window {
@@ -15,11 +25,6 @@ declare global {
     };
   }
 }
-
-const LS_NAME_KEY = "haildesk-customer-name";
-const LS_EMAIL_KEY = "haildesk-customer-email";
-const LS_CUSTOMER_ID_KEY = "haildesk-customer-id";
-const LS_CONVERSATION_KEY = "haildesk-conversation-id";
 
 export class HaildeskWidget {
   private readonly apiKey: string;
@@ -70,11 +75,10 @@ export class HaildeskWidget {
     this.apiUrl = config.apiUrl ?? import.meta.env.VITE_API_URL ?? "http://localhost:3001";
     this.customStyles = config.customStyles ?? "";
 
-    const storedName = this.readStoredName();
-    const storedEmail = this.readStoredEmail();
+    const storedName = readStoredCustomerName();
+    const storedEmail = readStoredCustomerEmail();
 
-    const resolvedCustomerId =
-      config.customerId ?? this.resolveAnonymousCustomerId();
+    const resolvedCustomerId = config.customerId ?? resolveAnonymousCustomerId();
 
     this.customerConfig = {
       customerId: resolvedCustomerId,
@@ -82,47 +86,7 @@ export class HaildeskWidget {
       customerName: config.customerName ?? storedName ?? undefined,
     };
 
-    this.conversationId = this.readFromStorage(LS_CONVERSATION_KEY);
-  }
-
-  private resolveAnonymousCustomerId(): string {
-    const stored = this.readFromStorage(LS_CUSTOMER_ID_KEY);
-    if (stored) return stored;
-    const uuid = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const id = `anon-${uuid}`;
-    this.writeToStorage(LS_CUSTOMER_ID_KEY, id);
-    return id;
-  }
-
-  private readFromStorage(key: string): string | null {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  }
-
-  private writeToStorage(key: string, value: string): void {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-    }
-  }
-
-  private readStoredName(): string | null {
-    return this.readFromStorage(LS_NAME_KEY);
-  }
-
-  private readStoredEmail(): string | null {
-    return this.readFromStorage(LS_EMAIL_KEY);
-  }
-
-  private storeCustomerName(name: string): void {
-    this.writeToStorage(LS_NAME_KEY, name);
-  }
-
-  private storeCustomerEmail(email: string): void {
-    this.writeToStorage(LS_EMAIL_KEY, email);
+    this.conversationId = readStoredConversationId();
   }
 
   async init(): Promise<void> {
@@ -226,8 +190,8 @@ export class HaildeskWidget {
       apiKey: this.apiKey,
       faqs: this.faqs,
       onContactProvided: ({ name, email }: { name: string; email: string }) => {
-        this.storeCustomerName(name);
-        this.storeCustomerEmail(email);
+        storeCustomerName(name);
+        storeCustomerEmail(email);
         this.customerConfig = { ...this.customerConfig, customerName: name, customerEmail: email };
         this.socket?.disconnect();
         this.initSocket();
@@ -341,7 +305,7 @@ export class HaildeskWidget {
     this.socket?.sendMessage(body, (confirmedConversationId) => {
       if (this.conversationId !== confirmedConversationId) {
         this.conversationId = confirmedConversationId;
-        this.writeToStorage(LS_CONVERSATION_KEY, confirmedConversationId);
+        storeConversationId(confirmedConversationId);
       }
     }, attachments);
   }
@@ -359,7 +323,7 @@ export class HaildeskWidget {
     }
     // Clear stored conversation so next open starts fresh
     this.conversationId = null;
-    this.writeToStorage(LS_CONVERSATION_KEY, '');
+    clearStoredConversationId();
   }
 
   open(): void {

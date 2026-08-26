@@ -1,6 +1,9 @@
 export interface WidgetSocketConfig {
   apiUrl: string;
-  apiKey: string;
+  /** Third-party embedders authenticate with a secret API key. */
+  apiKey?: string;
+  /** Support-page visitors authenticate with the org's public slug instead. */
+  orgSlug?: string;
   customerId?: string;
   customerEmail?: string;
   customerName?: string;
@@ -61,6 +64,8 @@ export interface ChatWindowConfig {
   plan?: string;
   apiUrl?: string;
   apiKey?: string;
+  /** Support-page visitors authenticate with the org's public slug instead of an apiKey. */
+  orgSlug?: string;
   voiceNotesEnabled?: boolean;
   faqs?: Faq[];
 }

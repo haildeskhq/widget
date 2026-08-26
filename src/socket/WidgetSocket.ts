@@ -23,11 +23,11 @@ export class WidgetSocket {
 
   connect(): void {
     const socketUrl = new URL(this.config.apiUrl).origin;
+    const auth = this.config.orgSlug
+      ? { orgSlug: this.config.orgSlug, customerId: this.config.customerId }
+      : { apiKey: this.config.apiKey, customerId: this.config.customerId };
     this.socket = io(socketUrl, {
-      auth: {
-        apiKey: this.config.apiKey,
-        customerId: this.config.customerId,
-      },
+      auth,
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,

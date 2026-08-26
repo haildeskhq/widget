@@ -43,7 +43,14 @@ export function createChatWindow(
   updateHeaderTitle: (name: string) => void;
   showResolveOption: () => void;
 } {
-  const uploadEnabled = !!(config.apiUrl && config.apiKey);
+  const uploadEnabled = !!(config.apiUrl && (config.apiKey || config.orgSlug));
+
+  function uploadRequestInit(): { url: string; headers: Record<string, string> } {
+    if (config.orgSlug) {
+      return { url: `${config.apiUrl}/support-pages/${config.orgSlug}/upload`, headers: {} };
+    }
+    return { url: `${config.apiUrl}/widget/upload`, headers: { 'X-API-Key': config.apiKey! } };
+  }
 
   const window = document.createElement('div');
   window.className = [
@@ -285,9 +292,10 @@ export function createChatWindow(
       try {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch(`${config.apiUrl}/widget/upload`, {
+        const { url: uploadUrl, headers } = uploadRequestInit();
+        const res = await fetch(uploadUrl, {
           method: 'POST',
-          headers: { 'X-API-Key': config.apiKey! },
+          headers,
           body: formData,
         });
         if (!res.ok) throw new Error('Upload failed');
@@ -370,9 +378,10 @@ export function createChatWindow(
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${config.apiUrl}/widget/upload`, {
+      const { url: uploadUrl, headers } = uploadRequestInit();
+      const res = await fetch(uploadUrl, {
         method: 'POST',
-        headers: { 'X-API-Key': config.apiKey! },
+        headers,
         body: formData,
       });
       if (!res.ok) throw new Error('Upload failed');
