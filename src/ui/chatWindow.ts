@@ -36,6 +36,8 @@ export function createChatWindow(
 ): {
   element: HTMLDivElement;
   addMessage: (message: ChatMessage) => void;
+  updateMessage: (id: string, patch: { body?: string; deletedAt?: Date | null }) => void;
+  removeMessage: (id: string) => void;
   showTyping: () => void;
   hideTyping: () => void;
   enableInput: () => void;
@@ -145,6 +147,12 @@ export function createChatWindow(
     </div>
   `;
   typingEl.style.display = 'none';
+
+  // Tracks rendered message DOM refs by id so edits/deletes can target them directly
+  const renderedMessages = new Map<
+    string,
+    { wrapper: HTMLDivElement; bubble: HTMLDivElement | null; time: HTMLDivElement }
+  >();
 
   // Pending attachments state
   let pendingAttachments: ChatAttachment[] = [];
@@ -733,12 +741,14 @@ export function createChatWindow(
     const messageEl = document.createElement('div');
     const displayType = message.senderType === 'ai' ? 'agent' : message.senderType;
     messageEl.className = `haildesk-message haildesk-message--${displayType}`;
+    messageEl.dataset.haildeskMessageId = message.id;
 
     const wrapper = document.createElement('div');
 
     const hasBody = message.body.trim().length > 0 && message.body.trim() !== ' ';
+    let bubble: HTMLDivElement | null = null;
     if (hasBody) {
-      const bubble = document.createElement('div');
+      bubble = document.createElement('div');
       bubble.className = 'haildesk-message-bubble';
       bubble.innerHTML = formatMessageBody(message.body);
       wrapper.appendChild(bubble);
@@ -779,11 +789,52 @@ export function createChatWindow(
       minute: '2-digit',
     });
     wrapper.appendChild(time);
+    renderedMessages.set(message.id, { wrapper, bubble, time });
 
     messageEl.appendChild(wrapper);
     messagesContainer.appendChild(messageEl);
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  function updateMessage(id: string, patch: { body?: string; deletedAt?: Date | null }): void {
+    const entry = renderedMessages.get(id);
+    if (!entry) return;
+    const { wrapper, time } = entry;
+
+    if (patch.deletedAt) {
+      Array.from(wrapper.children).forEach((child) => {
+        if (child !== time) child.remove();
+      });
+      const placeholder = document.createElement('div');
+      placeholder.className = 'haildesk-message-bubble haildesk-message-bubble--deleted';
+      placeholder.textContent = 'This message was deleted';
+      wrapper.insertBefore(placeholder, time);
+      renderedMessages.set(id, { wrapper, bubble: null, time });
+      return;
+    }
+
+    if (patch.body !== undefined) {
+      let { bubble } = entry;
+      if (!bubble) {
+        bubble = document.createElement('div');
+        bubble.className = 'haildesk-message-bubble';
+        wrapper.insertBefore(bubble, wrapper.firstChild);
+        renderedMessages.set(id, { wrapper, bubble, time });
+      }
+      bubble.innerHTML = formatMessageBody(patch.body);
+
+      if (!time.querySelector('.haildesk-message-edited-tag')) {
+        const editedTag = document.createElement('span');
+        editedTag.className = 'haildesk-message-edited-tag';
+        editedTag.textContent = ' · edited';
+        time.appendChild(editedTag);
+      }
+    }
+  }
+
+  function removeMessage(id: string): void {
+    updateMessage(id, { deletedAt: new Date() });
   }
 
   function showTyping(): void {
@@ -813,5 +864,5 @@ export function createChatWindow(
     resolveBar.style.display = 'flex';
   }
 
-  return { element: window, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption };
+  return { element: window, addMessage, updateMessage, removeMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption };
 }

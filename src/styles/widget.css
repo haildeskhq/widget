@@ -445,11 +445,20 @@
   font-style: italic;
 }
 
+.haildesk-message-bubble--deleted {
+  font-style: italic;
+  opacity: 0.6;
+}
+
 .haildesk-message-time {
   font-size: 10px;
   color: #9CA3AF;
   margin-top: 2px;
   text-align: right;
+}
+
+.haildesk-message-edited-tag {
+  font-style: italic;
 }
 
 .haildesk-message--agent .haildesk-message-time {

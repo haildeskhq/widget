@@ -44,6 +44,8 @@ export class HaildeskWidget {
   private conversationId: string | null = null;
   private faqs: Faq[] = [];
   private addMessageToWindow: ((msg: ChatMessage) => void) | null = null;
+  private updateMessageInWindow: ((id: string, patch: { body?: string; deletedAt?: Date | null }) => void) | null = null;
+  private removeMessageFromWindow: ((id: string) => void) | null = null;
   private showTyping: (() => void) | null = null;
   private hideTyping: (() => void) | null = null;
   private enableInput: (() => void) | null = null;
@@ -199,11 +201,13 @@ export class HaildeskWidget {
       },
     };
 
-    const { element, addMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption } =
+    const { element, addMessage, updateMessage, removeMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption } =
       createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments), (satisfied) => this.handleResolve(satisfied));
 
     this.windowEl = element;
     this.addMessageToWindow = addMessage;
+    this.updateMessageInWindow = updateMessage;
+    this.removeMessageFromWindow = removeMessage;
     this.showTyping = showTyping;
     this.hideTyping = hideTyping;
     this.enableInput = enableInput;
@@ -262,6 +266,14 @@ export class HaildeskWidget {
           updateBubbleCount(this.bubbleEl, this.unreadCount);
         }
       }
+    });
+
+    this.socket.onMessageUpdated((message) => {
+      this.updateMessageInWindow?.(message.id, { body: message.body });
+    });
+
+    this.socket.onMessageDeleted((messageId) => {
+      this.removeMessageFromWindow?.(messageId);
     });
 
     this.socket.onTypingStart(() => this.showTyping?.());
