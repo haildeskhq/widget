@@ -744,42 +744,50 @@ export function createChatWindow(
     messageEl.dataset.haildeskMessageId = message.id;
 
     const wrapper = document.createElement('div');
+    const isDeleted = Boolean(message.deletedAt);
 
-    const hasBody = message.body.trim().length > 0 && message.body.trim() !== ' ';
     let bubble: HTMLDivElement | null = null;
-    if (hasBody) {
+    if (isDeleted) {
       bubble = document.createElement('div');
-      bubble.className = 'haildesk-message-bubble';
-      bubble.innerHTML = formatMessageBody(message.body);
+      bubble.className = 'haildesk-message-bubble haildesk-message-bubble--deleted';
+      bubble.textContent = 'This message was deleted';
       wrapper.appendChild(bubble);
-    }
+    } else {
+      const hasBody = message.body.trim().length > 0 && message.body.trim() !== ' ';
+      if (hasBody) {
+        bubble = document.createElement('div');
+        bubble.className = 'haildesk-message-bubble';
+        bubble.innerHTML = formatMessageBody(message.body);
+        wrapper.appendChild(bubble);
+      }
 
-    // Render attachments
-    if (message.attachments && message.attachments.length > 0) {
-      message.attachments.forEach((att) => {
-        if (att.mimeType.startsWith('image/')) {
-          const link = document.createElement('a');
-          link.href = att.url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          const img = document.createElement('img');
-          img.src = att.url;
-          img.alt = att.filename;
-          img.style.cssText = 'max-width:200px;max-height:150px;border-radius:8px;display:block;margin-top:4px;';
-          link.appendChild(img);
-          wrapper.appendChild(link);
-        } else if (att.mimeType.startsWith('audio/')) {
-          wrapper.appendChild(createVoiceNotePlayer(att.url, att.durationSec));
-        } else {
-          const link = document.createElement('a');
-          link.href = att.url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.className = 'haildesk-file-attachment';
-          link.innerHTML = `<span class="haildesk-file-icon">📄</span><span class="haildesk-file-name">${att.filename}</span><span class="haildesk-file-size">${formatBytes(att.size)}</span>`;
-          wrapper.appendChild(link);
-        }
-      });
+      // Render attachments
+      if (message.attachments && message.attachments.length > 0) {
+        message.attachments.forEach((att) => {
+          if (att.mimeType.startsWith('image/')) {
+            const link = document.createElement('a');
+            link.href = att.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            const img = document.createElement('img');
+            img.src = att.url;
+            img.alt = att.filename;
+            img.style.cssText = 'max-width:200px;max-height:150px;border-radius:8px;display:block;margin-top:4px;';
+            link.appendChild(img);
+            wrapper.appendChild(link);
+          } else if (att.mimeType.startsWith('audio/')) {
+            wrapper.appendChild(createVoiceNotePlayer(att.url, att.durationSec));
+          } else {
+            const link = document.createElement('a');
+            link.href = att.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'haildesk-file-attachment';
+            link.innerHTML = `<span class="haildesk-file-icon">📄</span><span class="haildesk-file-name">${att.filename}</span><span class="haildesk-file-size">${formatBytes(att.size)}</span>`;
+            wrapper.appendChild(link);
+          }
+        });
+      }
     }
 
     const time = document.createElement('div');
@@ -788,8 +796,14 @@ export function createChatWindow(
       hour: '2-digit',
       minute: '2-digit',
     });
+    if (!isDeleted && message.editedAt) {
+      const editedTag = document.createElement('span');
+      editedTag.className = 'haildesk-message-edited-tag';
+      editedTag.textContent = ' · edited';
+      time.appendChild(editedTag);
+    }
     wrapper.appendChild(time);
-    renderedMessages.set(message.id, { wrapper, bubble, time });
+    renderedMessages.set(message.id, { wrapper, bubble: isDeleted ? null : bubble, time });
 
     messageEl.appendChild(wrapper);
     messagesContainer.appendChild(messageEl);

@@ -15,6 +15,8 @@ function mapMessage(raw: RawMessage): IncomingMessage {
     createdAt: raw.createdAt,
     conversationId: raw.conversationId,
     attachments: raw.attachments,
+    editedAt: raw.editedAt,
+    deletedAt: raw.deletedAt,
   };
 }
 

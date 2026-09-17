@@ -244,6 +244,8 @@ export class HaildeskWidget {
         senderType: message.senderType,
         createdAt: new Date(message.createdAt),
         attachments: message.attachments,
+        editedAt: message.editedAt,
+        deletedAt: message.deletedAt,
       });
 
       if (message.senderType === 'ai' || message.senderType === 'agent') {
@@ -291,6 +293,8 @@ export class HaildeskWidget {
           senderType: msg.senderType,
           createdAt: new Date(msg.createdAt),
           attachments: msg.attachments,
+          editedAt: msg.editedAt,
+          deletedAt: msg.deletedAt,
         });
       });
       if (messages.length > 0) {

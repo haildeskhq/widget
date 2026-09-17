@@ -31,6 +31,8 @@ export interface IncomingMessage {
   createdAt: Date;
   conversationId: string;
   attachments?: ChatAttachment[];
+  editedAt?: Date | null;
+  deletedAt?: Date | null;
 }
 
 export interface HaildeskWidgetConfig {
@@ -76,6 +78,8 @@ export interface ChatMessage {
   senderType: 'agent' | 'customer' | 'system' | 'ai';
   createdAt: Date;
   attachments?: ChatAttachment[];
+  editedAt?: Date | null;
+  deletedAt?: Date | null;
 }
 
 export interface BubbleConfig {
