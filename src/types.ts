@@ -69,6 +69,8 @@ export interface ChatWindowConfig {
   /** Support-page visitors authenticate with the org's public slug instead of an apiKey. */
   orgSlug?: string;
   voiceNotesEnabled?: boolean;
+  /** Enterprise only — customers can attach videos up to 100 MB. */
+  videoUploadsEnabled?: boolean;
   faqs?: Faq[];
 }
 
@@ -107,4 +109,6 @@ export interface OrgConfig {
   disclosureLiveText?: string;
   plan?: string;
   voiceNotesEnabled?: boolean;
+  /** Enterprise only — customers can attach videos up to 100 MB. */
+  videoUploadsEnabled?: boolean;
 }
