@@ -10,6 +10,8 @@ const ALLOWED_TYPES = [
 ];
 const AUDIO_TYPES = ['audio/webm', 'audio/ogg', 'audio/mp4'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB (Enterprise)
 const MAX_RECORDING_SECONDS = 300; // 5 minutes
 const MIC_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
 
@@ -52,6 +54,28 @@ export function createChatWindow(
       return { url: `${config.apiUrl}/support-pages/${config.orgSlug}/upload`, headers: {} };
     }
     return { url: `${config.apiUrl}/widget/upload`, headers: { 'X-API-Key': config.apiKey! } };
+  }
+
+  const videoUploadsEnabled = uploadEnabled && !!config.videoUploadsEnabled;
+
+  // Videos go straight to storage via a presigned URL instead of through the API.
+  async function uploadVideo(file: File): Promise<string | null> {
+    const { url: uploadUrl, headers } = uploadRequestInit();
+    const presignRes = await fetch(`${uploadUrl}/presign-video`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
+    });
+    if (!presignRes.ok) return null;
+    const json = await presignRes.json() as { data?: { uploadUrl?: string; url?: string } };
+    if (!json.data?.uploadUrl || !json.data.url) return null;
+
+    const putRes = await fetch(json.data.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    return putRes.ok ? json.data.url : null;
   }
 
   const window = document.createElement('div');
@@ -165,6 +189,7 @@ export function createChatWindow(
   attachmentPreview.style.display = 'none';
 
   const PDF_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="6" y="18" font-size="5" fill="#ef4444" stroke="none" font-family="sans-serif" font-weight="bold">PDF</text></svg>`;
+  const VIDEO_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
   const MIC_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3z"/></svg>`;
 
   function renderAttachmentPreview(): void {
@@ -194,6 +219,14 @@ export function createChatWindow(
         img.alt = att.filename;
         img.className = 'haildesk-attachment-thumb';
         chip.appendChild(img);
+      } else if (att.mimeType.startsWith('video/')) {
+        const icon = document.createElement('span');
+        icon.className = 'haildesk-attachment-icon';
+        icon.innerHTML = VIDEO_ICON;
+        chip.appendChild(icon);
+        const name = document.createElement('span');
+        name.textContent = att.filename.length > 14 ? att.filename.slice(0, 12) + '…' : att.filename;
+        chip.appendChild(name);
       } else if (att.mimeType.startsWith('audio/')) {
         const icon = document.createElement('span');
         icon.className = 'haildesk-attachment-icon';
@@ -281,7 +314,7 @@ export function createChatWindow(
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.multiple = true;
-  fileInput.accept = ALLOWED_TYPES.join(',');
+  fileInput.accept = [...ALLOWED_TYPES, ...(videoUploadsEnabled ? VIDEO_TYPES : [])].join(',');
   fileInput.style.display = 'none';
   fileInput.addEventListener('change', () => {
     void handleFiles(Array.from(fileInput.files ?? []));
@@ -291,24 +324,34 @@ export function createChatWindow(
   async function handleFiles(files: File[]): Promise<void> {
     if (!uploadEnabled) return;
     for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) continue;
+      const isVideo = VIDEO_TYPES.includes(file.type);
+      if (isVideo) {
+        if (!videoUploadsEnabled || file.size > MAX_VIDEO_SIZE) continue;
+      } else if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) {
+        continue;
+      }
       isUploading = true;
       uploadingFiles.push(file.name);
       renderAttachmentPreview();
       updateSendBtn();
       plusBtn.disabled = true;
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const { url: uploadUrl, headers } = uploadRequestInit();
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          headers,
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Upload failed');
-        const json = await res.json() as { data?: { url?: string } };
-        const url = json.data?.url;
+        let url: string | null | undefined;
+        if (isVideo) {
+          url = await uploadVideo(file);
+        } else {
+          const formData = new FormData();
+          formData.append('file', file);
+          const { url: uploadUrl, headers } = uploadRequestInit();
+          const res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          if (!res.ok) throw new Error('Upload failed');
+          const json = await res.json() as { data?: { url?: string } };
+          url = json.data?.url;
+        }
         if (url) {
           pendingAttachments.push({ filename: file.name, url, mimeType: file.type, size: file.size });
         }
@@ -775,6 +818,13 @@ export function createChatWindow(
             img.style.cssText = 'max-width:200px;max-height:150px;border-radius:8px;display:block;margin-top:4px;';
             link.appendChild(img);
             wrapper.appendChild(link);
+          } else if (att.mimeType.startsWith('video/')) {
+            const video = document.createElement('video');
+            video.src = att.url;
+            video.controls = true;
+            video.preload = 'metadata';
+            video.style.cssText = 'max-width:240px;max-height:180px;border-radius:8px;display:block;margin-top:4px;background:#000;';
+            wrapper.appendChild(video);
           } else if (att.mimeType.startsWith('audio/')) {
             wrapper.appendChild(createVoiceNotePlayer(att.url, att.durationSec));
           } else {
