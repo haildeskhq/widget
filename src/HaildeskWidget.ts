@@ -332,7 +332,7 @@ export class HaildeskWidget {
       await fetch(`${this.apiUrl}/widget/conversations/${this.conversationId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
-        body: JSON.stringify({ satisfied }),
+        body: JSON.stringify({ satisfied, customerId: this.customerConfig.customerId }),
       });
     } catch {
       // fire-and-forget — UI already shows closed state
