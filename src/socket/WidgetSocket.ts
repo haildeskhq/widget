@@ -117,7 +117,9 @@ export class WidgetSocket {
           console.error('[WidgetSocket] Message send failed:', ack.error);
           return;
         }
-        if (!this.conversationId) {
+        // Adopt the server's conversation, including when it replaced a stale one
+        // (resolved, or no longer accessible) — otherwise every message keeps naming it.
+        if (this.conversationId !== ack.conversationId) {
           this.joinConversation(ack.conversationId);
         }
         onConfirmed?.(ack.conversationId);
