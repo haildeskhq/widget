@@ -49,9 +49,14 @@ export class WidgetSocket {
 
   connect(): void {
     const socketUrl = new URL(this.config.apiUrl).origin;
+    const identity = {
+      customerId: this.config.customerId,
+      userHash: this.config.userHash,
+      anonymousId: this.config.anonymousId,
+    };
     const auth = this.config.orgSlug
-      ? { orgSlug: this.config.orgSlug, customerId: this.config.customerId }
-      : { apiKey: this.config.apiKey, customerId: this.config.customerId };
+      ? { orgSlug: this.config.orgSlug, ...identity }
+      : { apiKey: this.config.apiKey, ...identity };
     this.socket = io(socketUrl, {
       auth,
       transports: ['websocket', 'polling'],
@@ -110,6 +115,9 @@ export class WidgetSocket {
         customerId: this.config.customerId,
         customerEmail: this.config.customerEmail,
         customerName: this.config.customerName,
+        userHash: this.config.userHash,
+        emailHash: this.config.emailHash,
+        anonymousId: this.config.anonymousId,
         attachments: attachments && attachments.length > 0 ? attachments : undefined,
       },
       (ack: SendAck) => {

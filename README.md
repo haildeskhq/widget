@@ -26,7 +26,44 @@ HaildeskWidget.init({
 | `customerId`    | `string` | No       | Identify a known user                       |
 | `customerEmail` | `string` | No       | Pre-fill the customer's email               |
 | `customerName`  | `string` | No       | Pre-fill the customer's name                |
+| `userHash`      | `string` | No       | Signature of `customerId` (see below)       |
+| `emailHash`     | `string` | No       | Signature of `customerEmail` (see below)    |
 | `customStyles`  | `string` | No       | CSS loaded after all built-in widget styles |
+
+## Identity verification
+
+If you pass `customerId` or `customerEmail` for logged-in users, sign them on your
+server. These values are set in the visitor's browser, so without a signature anyone
+can change them and appear to your support team as another user.
+
+1. Copy your identity secret from **Settings → API Keys → Identity verification**.
+   Keep it on your server only.
+2. On your server, compute an HMAC-SHA256 (hex) of the exact strings you pass:
+
+   ```js
+   const crypto = require("crypto");
+   const sign = (value) =>
+     crypto.createHmac("sha256", process.env.HAILDESK_IDENTITY_SECRET).update(value).digest("hex");
+
+   const userHash = sign(user.id);
+   const emailHash = sign(user.email);
+   ```
+
+3. Pass them to the widget:
+
+   ```js
+   HaildeskWidget.init({
+     apiKey: "YOUR_API_KEY",
+     customerId: user.id,
+     userHash,
+     customerEmail: user.email,
+     emailHash,
+   });
+   ```
+
+When verification is required for your workspace, a `customerId` or `customerEmail`
+without a valid signature is ignored. The visitor can still chat, but as an anonymous
+visitor. Anonymous visitors (no `customerId`) need nothing.
 
 ## Custom Styles
 
