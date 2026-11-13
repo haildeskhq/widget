@@ -75,6 +75,11 @@ export interface ChatWindowConfig {
   disclosureEnabled?: boolean;
   disclosureText?: string;
   requireNamePrompt?: boolean;
+  /**
+   * Whether the contact prompt asks for an email (default true). When false it asks
+   * for the name only, and onContactProvided receives an empty email.
+   */
+  askEmail?: boolean;
   onContactProvided?: (contact: { name: string; email: string }) => void;
   plan?: string;
   apiUrl?: string;

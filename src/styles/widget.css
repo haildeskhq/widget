@@ -772,6 +772,10 @@
   transition: border-color 0.15s;
 }
 
+.haildesk-email-input[hidden] {
+  display: none !important;
+}
+
 .haildesk-name-input:focus,
 .haildesk-email-input:focus {
   border-color: var(--haildesk-primary, #4F46E5);
