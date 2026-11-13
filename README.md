@@ -36,7 +36,7 @@ If you pass `customerId` or `customerEmail` for logged-in users, sign them on yo
 server. These values are set in the visitor's browser, so without a signature anyone
 can change them and appear to your support team as another user.
 
-1. Copy your identity secret from **Settings → API Keys → Identity verification**.
+1. Copy your identity secret from **Settings → Identity Verification**.
    Keep it on your server only.
 2. On your server, compute an HMAC-SHA256 (hex) of the exact strings you pass:
 

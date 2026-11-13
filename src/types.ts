@@ -49,7 +49,7 @@ export interface HaildeskWidgetConfig {
   customerName?: string;
   /**
    * HMAC-SHA256 of `customerId`, computed on your server with your identity secret
-   * (Settings → API Keys → Identity verification). Proves the visitor is that user.
+   * (Settings → Identity Verification). Proves the visitor is that user.
    */
   userHash?: string;
   /** HMAC-SHA256 of `customerEmail`, computed the same way. */
