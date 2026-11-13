@@ -538,11 +538,12 @@ export function createChatWindow(
   namePrompt.className = 'haildesk-name-prompt';
   namePrompt.setAttribute('aria-label', 'Enter your name to start chatting');
   namePrompt.style.display = config.requireNamePrompt ? 'flex' : 'none';
+  const askEmail = config.askEmail !== false;
   namePrompt.innerHTML = `
     <div class="haildesk-name-prompt-inner">
       <div class="haildesk-name-prompt-emoji">👋</div>
       <p class="haildesk-name-prompt-title">Before we start…</p>
-      <p class="haildesk-name-prompt-sub">How can we reach you?</p>
+      <p class="haildesk-name-prompt-sub">${askEmail ? 'How can we reach you?' : 'What should we call you?'}</p>
       <input
         class="haildesk-name-input"
         type="text"
@@ -557,6 +558,7 @@ export function createChatWindow(
         maxlength="120"
         autocomplete="email"
         aria-label="Email address"
+        ${askEmail ? '' : 'hidden'}
       />
       <button class="haildesk-name-submit-btn" disabled>Start chat</button>
     </div>
@@ -569,7 +571,7 @@ export function createChatWindow(
   const updateNameSubmit = () => {
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
-    nameSubmitBtn.disabled = name.length === 0 || !isValidEmail(email);
+    nameSubmitBtn.disabled = name.length === 0 || (askEmail && !isValidEmail(email));
   };
 
   nameInput.addEventListener('input', updateNameSubmit);
@@ -594,9 +596,9 @@ export function createChatWindow(
   function submitName(): void {
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
-    if (!name || !isValidEmail(email)) return;
+    if (!name || (askEmail && !isValidEmail(email))) return;
     namePrompt.style.display = 'none';
-    config.onContactProvided?.({ name, email });
+    config.onContactProvided?.({ name, email: askEmail ? email : '' });
   }
 
   function isValidEmail(email: string): boolean {

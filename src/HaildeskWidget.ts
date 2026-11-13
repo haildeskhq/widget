@@ -189,7 +189,14 @@ export class HaildeskWidget {
   private renderWindow(): void {
     if (!this.shadowRoot) return;
 
-    const needsContactPrompt = !this.customerConfig.customerName || !this.customerConfig.customerEmail;
+    // A signed-in user the site vouches for (customerId + userHash) isn't asked for an
+    // email: the site already has it. They're only asked for a name if none was passed.
+    // An unsigned customerId still gets the full prompt, since once identity
+    // verification is enforced the server treats that visitor as anonymous.
+    const vouchedUser = !!this.customerConfig.userHash;
+    const hasName = !!this.customerConfig.customerName;
+    const hasEmail = !!this.customerConfig.customerEmail;
+    const needsContactPrompt = vouchedUser ? !hasName : !hasName || !hasEmail;
 
     const windowConfig = {
       ...this.orgConfig,
@@ -198,17 +205,21 @@ export class HaildeskWidget {
       disclosureEnabled: this.orgConfig.disclosureEnabled,
       disclosureText: this.orgConfig.disclosureText,
       requireNamePrompt: needsContactPrompt,
+      askEmail: !vouchedUser,
       apiUrl: this.apiUrl,
       apiKey: this.apiKey,
       faqs: this.faqs,
       onContactProvided: ({ name, email }: { name: string; email: string }) => {
         storeCustomerName(name);
-        storeCustomerEmail(email);
+        // Empty when the prompt only asked for a name — keep whatever email we had.
+        if (email) storeCustomerEmail(email);
+        const customerEmail = email || this.customerConfig.customerEmail;
         this.customerConfig = {
           ...this.customerConfig,
           customerName: name,
-          customerEmail: email,
-          emailHash: email === this.signedEmail ? this.customerConfig.emailHash : undefined,
+          customerEmail,
+          emailHash:
+            customerEmail && customerEmail === this.signedEmail ? this.customerConfig.emailHash : undefined,
         };
         this.socket?.disconnect();
         this.initSocket();

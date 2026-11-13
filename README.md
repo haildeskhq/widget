@@ -61,6 +61,10 @@ can change them and appear to your support team as another user.
    });
    ```
 
+Users passed with a `userHash` aren't asked for their email before chatting. If you
+also pass `customerName`, they go straight to the chat; otherwise they're asked only for
+their name. Visitors without a `userHash` still see the full name-and-email prompt.
+
 When verification is required for your workspace, a `customerId` or `customerEmail`
 without a valid signature is ignored. The visitor can still chat, but as an anonymous
 visitor. Anonymous visitors (no `customerId`) need nothing.
