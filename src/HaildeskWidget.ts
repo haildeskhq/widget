@@ -30,7 +30,9 @@ export class HaildeskWidget {
   private readonly apiKey: string;
   private readonly apiUrl: string;
   private customStyles: string;
-  private customerConfig: Omit<HaildeskWidgetConfig, "apiKey" | "apiUrl">;
+  private customerConfig: Omit<HaildeskWidgetConfig, "apiKey" | "apiUrl"> & { anonymousId: string };
+  /** The email the embedding site signed, so a typed-in replacement drops the signature. */
+  private readonly signedEmail: string | undefined;
 
   private shadowRoot: ShadowRoot | null = null;
   private hostEl: HTMLDivElement | null = null;
@@ -80,12 +82,20 @@ export class HaildeskWidget {
     const storedName = readStoredCustomerName();
     const storedEmail = readStoredCustomerEmail();
 
-    const resolvedCustomerId = config.customerId ?? resolveAnonymousCustomerId();
+    // Always kept, even for identified users: if the site's customerId can't be
+    // verified, the server falls back to this browser's own anonymous id.
+    const anonymousId = resolveAnonymousCustomerId();
+    const resolvedCustomerId = config.customerId ?? anonymousId;
+    const customerEmail = config.customerEmail ?? storedEmail ?? undefined;
+    this.signedEmail = config.emailHash ? config.customerEmail : undefined;
 
     this.customerConfig = {
       customerId: resolvedCustomerId,
-      customerEmail: config.customerEmail ?? storedEmail ?? undefined,
+      customerEmail,
       customerName: config.customerName ?? storedName ?? undefined,
+      userHash: config.customerId ? config.userHash : undefined,
+      emailHash: customerEmail && customerEmail === this.signedEmail ? config.emailHash : undefined,
+      anonymousId,
     };
 
     this.conversationId = readStoredConversationId();
@@ -194,7 +204,12 @@ export class HaildeskWidget {
       onContactProvided: ({ name, email }: { name: string; email: string }) => {
         storeCustomerName(name);
         storeCustomerEmail(email);
-        this.customerConfig = { ...this.customerConfig, customerName: name, customerEmail: email };
+        this.customerConfig = {
+          ...this.customerConfig,
+          customerName: name,
+          customerEmail: email,
+          emailHash: email === this.signedEmail ? this.customerConfig.emailHash : undefined,
+        };
         this.socket?.disconnect();
         this.initSocket();
         this.enableInput?.();
@@ -228,6 +243,9 @@ export class HaildeskWidget {
       customerId: this.customerConfig.customerId,
       customerEmail: this.customerConfig.customerEmail,
       customerName: this.customerConfig.customerName,
+      userHash: this.customerConfig.userHash,
+      emailHash: this.customerConfig.emailHash,
+      anonymousId: this.customerConfig.anonymousId,
       conversationId: this.conversationId ?? undefined,
     });
 
@@ -332,7 +350,12 @@ export class HaildeskWidget {
       await fetch(`${this.apiUrl}/widget/conversations/${this.conversationId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': this.apiKey },
-        body: JSON.stringify({ satisfied, customerId: this.customerConfig.customerId }),
+        body: JSON.stringify({
+          satisfied,
+          customerId: this.customerConfig.customerId,
+          userHash: this.customerConfig.userHash,
+          anonymousId: this.customerConfig.anonymousId,
+        }),
       });
     } catch {
       // fire-and-forget — UI already shows closed state

@@ -7,6 +7,12 @@ export interface WidgetSocketConfig {
   customerId?: string;
   customerEmail?: string;
   customerName?: string;
+  /** Server-computed HMAC of customerId (identity verification). */
+  userHash?: string;
+  /** Server-computed HMAC of customerEmail (identity verification). */
+  emailHash?: string;
+  /** This browser's own anon id, used by the server if customerId can't be verified. */
+  anonymousId?: string;
   conversationId?: string;
 }
 
@@ -41,6 +47,13 @@ export interface HaildeskWidgetConfig {
   customerId?: string;
   customerEmail?: string;
   customerName?: string;
+  /**
+   * HMAC-SHA256 of `customerId`, computed on your server with your identity secret
+   * (Settings → Identity). Proves the visitor is that user.
+   */
+  userHash?: string;
+  /** HMAC-SHA256 of `customerEmail`, computed the same way. */
+  emailHash?: string;
   /**
    * CSS injected into the widget's Shadow DOM after the built-in stylesheet.
    * Use widget class names to override any visual property.
