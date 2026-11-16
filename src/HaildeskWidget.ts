@@ -48,6 +48,8 @@ export class HaildeskWidget {
   private addMessageToWindow: ((msg: ChatMessage) => void) | null = null;
   private updateMessageInWindow: ((id: string, patch: { body?: string; deletedAt?: Date | null }) => void) | null = null;
   private removeMessageFromWindow: ((id: string) => void) | null = null;
+  private confirmMessageInWindow: ((tempId: string, serverId: string) => void) | null = null;
+  private localMessageSeq = 0;
   private showTyping: (() => void) | null = null;
   private hideTyping: (() => void) | null = null;
   private enableInput: (() => void) | null = null;
@@ -227,13 +229,14 @@ export class HaildeskWidget {
       },
     };
 
-    const { element, addMessage, updateMessage, removeMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption } =
+    const { element, addMessage, updateMessage, removeMessage, confirmMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption } =
       createChatWindow(windowConfig, (body, attachments) => this.handleSendMessage(body, attachments), (satisfied) => this.handleResolve(satisfied));
 
     this.windowEl = element;
     this.addMessageToWindow = addMessage;
     this.updateMessageInWindow = updateMessage;
     this.removeMessageFromWindow = removeMessage;
+    this.confirmMessageInWindow = confirmMessage;
     this.showTyping = showTyping;
     this.hideTyping = hideTyping;
     this.enableInput = enableInput;
@@ -339,15 +342,18 @@ export class HaildeskWidget {
   }
 
   private handleSendMessage(body: string, attachments?: ChatAttachment[]): void {
+    // Shown straight away under a temporary id; swapped for the server's id once sent.
+    const tempId = `local-${Date.now()}-${++this.localMessageSeq}`;
     this.addMessageToWindow?.({
-      id: `local-${Date.now()}`,
+      id: tempId,
       body,
       senderType: "customer",
       createdAt: new Date(),
       attachments,
     });
 
-    this.socket?.sendMessage(body, (confirmedConversationId) => {
+    this.socket?.sendMessage(body, (confirmedConversationId, messageId) => {
+      if (messageId) this.confirmMessageInWindow?.(tempId, messageId);
       if (this.conversationId !== confirmedConversationId) {
         this.conversationId = confirmedConversationId;
         storeConversationId(confirmedConversationId);

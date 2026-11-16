@@ -106,7 +106,11 @@ export class WidgetSocket {
     this.socket?.emit('conversation:join', conversationId);
   }
 
-  sendMessage(body: string, onConfirmed?: (conversationId: string) => void, attachments?: ChatAttachment[]): void {
+  sendMessage(
+    body: string,
+    onConfirmed?: (conversationId: string, messageId?: string) => void,
+    attachments?: ChatAttachment[],
+  ): void {
     this.socket?.emit(
       'message:send',
       {
@@ -130,7 +134,7 @@ export class WidgetSocket {
         if (this.conversationId !== ack.conversationId) {
           this.joinConversation(ack.conversationId);
         }
-        onConfirmed?.(ack.conversationId);
+        onConfirmed?.(ack.conversationId, ack.message?._id);
       }
     );
   }

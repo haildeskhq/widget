@@ -40,6 +40,8 @@ export function createChatWindow(
   addMessage: (message: ChatMessage) => void;
   updateMessage: (id: string, patch: { body?: string; deletedAt?: Date | null }) => void;
   removeMessage: (id: string) => void;
+  /** Swap a message shown under a temporary id for its server id once it is sent. */
+  confirmMessage: (tempId: string, serverId: string) => void;
   showTyping: () => void;
   hideTyping: () => void;
   enableInput: () => void;
@@ -778,6 +780,14 @@ export function createChatWindow(
   });
 
   function addMessage(message: ChatMessage): void {
+    // Already on screen (e.g. history re-fetched after a reconnect): bring it up to
+    // date instead of drawing it twice.
+    if (renderedMessages.has(message.id)) {
+      if (message.deletedAt) updateMessage(message.id, { deletedAt: message.deletedAt });
+      else if (message.editedAt) updateMessage(message.id, { body: message.body });
+      return;
+    }
+
     const greetingEl = messagesContainer.querySelector('.haildesk-greeting');
     if (greetingEl) {
       greetingEl.remove();
@@ -903,6 +913,24 @@ export function createChatWindow(
     updateMessage(id, { deletedAt: new Date() });
   }
 
+  /**
+   * Gives a message shown optimistically under a temporary id its real server id, so a
+   * later history fetch recognises it. If the server's copy is already on screen (the
+   * fetch won the race), the temporary one is dropped instead.
+   */
+  function confirmMessage(tempId: string, serverId: string): void {
+    const entry = renderedMessages.get(tempId);
+    if (!entry || tempId === serverId) return;
+    const messageEl = entry.wrapper.parentElement;
+    renderedMessages.delete(tempId);
+    if (renderedMessages.has(serverId)) {
+      messageEl?.remove();
+      return;
+    }
+    renderedMessages.set(serverId, entry);
+    if (messageEl) messageEl.dataset.haildeskMessageId = serverId;
+  }
+
   function showTyping(): void {
     typingEl.style.display = 'flex';
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -930,5 +958,5 @@ export function createChatWindow(
     resolveBar.style.display = 'flex';
   }
 
-  return { element: window, addMessage, updateMessage, removeMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption };
+  return { element: window, addMessage, updateMessage, removeMessage, confirmMessage, showTyping, hideTyping, enableInput, updateDisclosure, updateHeaderTitle, showResolveOption };
 }
